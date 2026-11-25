@@ -61,9 +61,9 @@ async function startServer() {
   const app = express();
   app.use(express.json({ limit: '2mb' }));
 
-  // Warm up Quranic Corpus Morphology + Syntax Treebank + I'rab on server boot
-  ensureQuranLinguisticsLoaded().catch((err) => {
-    console.error('[QuranData] Warmup warning:', err);
+  // Add instant health check route for Render
+  app.get('/health', (_req, res) => {
+    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
   app.get('/api/chapters', async (_req, res) => {
