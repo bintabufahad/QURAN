@@ -1,0 +1,159 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-sans: 'Plus Jakarta Sans', 'IBM Plex Sans Arabic', system-ui, -apple-system, sans-serif;
+    --font-arabic-ui: 'IBM Plex Sans Arabic', 'Plus Jakarta Sans', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --font-quran: 'Amiri Quran', 'Scheherazade New', serif;
+  }
+
+  html {
+    font-family: var(--font-arabic-ui);
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: #FAF8F3;
+    color: #1A1916;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  html.dark body {
+    background-color: #0F1419;
+    color: #EDEAE1;
+  }
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-ar {
+  font-family: var(--font-arabic-ui);
+}
+
+.font-quran {
+  font-family: var(--font-quran);
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+}
+
+.font-corpus-ar {
+  font-family: 'Scheherazade New', 'Noto Naskh Arabic', 'Amiri Quran', serif;
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+}
+
+.font-corpus-label {
+  font-family: 'Noto Naskh Arabic', 'Scheherazade New', Tahoma, serif;
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+}
+
+.font-mono-tabular {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.mushaf-sheet {
+  container-type: inline-size;
+}
+
+/* Authentic Dar Al-Ma'rifah Tajweed Mushaf Color Coding */
+.tajweed-enabled .tj-ham_wasl,
+.tajweed-enabled .tj-slnt,
+.tajweed-enabled .tj-laam_shamsiyah {
+  color: #8E949B;
+}
+
+.dark .tajweed-enabled .tj-ham_wasl,
+.dark .tajweed-enabled .tj-slnt,
+.dark .tajweed-enabled .tj-laam_shamsiyah {
+  color: #7D8590;
+}
+
+.tajweed-enabled .tj-madda_normal {
+  color: #C47F17;
+}
+
+.dark .tajweed-enabled .tj-madda_normal {
+  color: #E3A73D;
+}
+
+.tajweed-enabled .tj-madda_permissible,
+.tajweed-enabled .tj-madda_obligatory_monfasel {
+  color: #D96B27;
+}
+
+.dark .tajweed-enabled .tj-madda_permissible,
+.dark .tajweed-enabled .tj-madda_obligatory_monfasel {
+  color: #F08D4E;
+}
+
+.tajweed-enabled .tj-madda_obligatory_mottasel,
+.tajweed-enabled .tj-madda_necessary {
+  color: #B91C1C;
+}
+
+.dark .tajweed-enabled .tj-madda_obligatory_mottasel,
+.dark .tajweed-enabled .tj-madda_necessary {
+  color: #F87171;
+}
+
+.tajweed-enabled .tj-qalaqah,
+.tajweed-enabled .tj-qalqalah {
+  color: #0369A1;
+}
+
+.dark .tajweed-enabled .tj-qalaqah,
+.dark .tajweed-enabled .tj-qalqalah {
+  color: #38BDF8;
+}
+
+.tajweed-enabled .tj-ghunnah,
+.tajweed-enabled .tj-idgham_ghunnah,
+.tajweed-enabled .tj-idgham_shafawi,
+.tajweed-enabled .tj-idgham_mutajanisayn,
+.tajweed-enabled .tj-idgham_mutaqaribayn {
+  color: #15803D;
+}
+
+.dark .tajweed-enabled .tj-ghunnah,
+.dark .tajweed-enabled .tj-idgham_ghunnah,
+.dark .tajweed-enabled .tj-idgham_shafawi,
+.dark .tajweed-enabled .tj-idgham_mutajanisayn,
+.dark .tajweed-enabled .tj-idgham_mutaqaribayn {
+  color: #4ADE80;
+}
+
+.tajweed-enabled .tj-idgham_wo_ghunnah {
+  color: #6B7280;
+}
+
+.tajweed-enabled .tj-ikhafa,
+.tajweed-enabled .tj-ikhafa_shafawi,
+.tajweed-enabled .tj-iqlab {
+  color: #9333EA;
+}
+
+.dark .tajweed-enabled .tj-ikhafa,
+.dark .tajweed-enabled .tj-ikhafa_shafawi,
+.dark .tajweed-enabled .tj-iqlab {
+  color: #C084FC;
+}
+
+/* Custom scrollbar for SVG graph canvas & panels */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(120, 113, 108, 0.28);
+  border-radius: 3px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 113, 108, 0.45);
+}

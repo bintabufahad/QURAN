@@ -1,0 +1,6 @@
+{
+  "name": "Bayan Al-Mushaf",
+  "description": "Tajweed Mushaf reader, interactive Ayah dependency graphs, word-by-word Quranic Arabic grammar, and custom multi-reciter recitation builder.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
