@@ -157,6 +157,8 @@ export interface AyahLinguisticsResponse {
   graphSource: GraphDatasetSource;
   verseTextUthmani: string;
   verseTranslation: string;
+  sahihTranslation?: string;
+  muhsinKhanTranslation?: string;
   words: WordMorphology[];
   graphs: ParsedSyntaxGraph[];
   irab: IrabEntry[];

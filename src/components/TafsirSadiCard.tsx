@@ -27,7 +27,7 @@ function renderTafsirParagraph(paragraph: string, keyPrefix: string): React.Reac
       return (
         <span
           key={`${keyPrefix}-q-${idx}`}
-          className="font-quran text-[1.16em] text-emerald-900 dark:text-emerald-300 px-0.5"
+          className="font-quran text-[1.16em] text-emerald-900 px-0.5"
         >
           {normalized}
         </span>
@@ -84,21 +84,21 @@ export const TafsirSadiCard: React.FC<TafsirSadiCardProps> = ({
   return (
     <div
       dir="rtl"
-      className={`border border-stone-200 dark:border-stone-800 rounded-xl bg-white dark:bg-[#141A21] ${
-        compact ? 'p-4' : 'p-5 sm:p-6'
+      className={`border border-[#B6CDA2]/60 rounded-xl bg-[#FCF9F0] text-stone-900 ${
+        compact ? 'p-3.5' : 'p-5 sm:p-6'
       }`}
     >
       {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-3 pb-3 mb-4 border-b border-stone-200 dark:border-stone-800">
+      <div className="flex flex-wrap items-start justify-between gap-3 pb-2.5 mb-3 border-b border-[#B6CDA2]/40">
         <div className="flex items-start gap-2.5">
-          <BookMarked className="w-4 h-4 text-emerald-700 dark:text-emerald-400 mt-0.5 shrink-0" />
+          <BookMarked className="w-4 h-4 text-emerald-800 mt-0.5 shrink-0" />
           <div>
-            <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100">
+            <h3 className="text-sm font-bold text-stone-900">
               تفسير السعدي — تيسير الكريم الرحمن في تفسير كلام المنان
             </h3>
-            <div className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">
+            <div className="text-[11px] text-stone-600 mt-0.5">
               {tafsir?.author || 'الشيخ عبد الرحمن بن ناصر السعدي (ت ١٣٧٦ هـ)'}
-              <span className="mx-1.5 text-stone-300 dark:text-stone-700">·</span>
+              <span className="mx-1.5 text-stone-400">·</span>
               <span dir="ltr" className="text-[10px]">
                 Tafsīr al-Sa‘dī ({surah}:{ayah})
               </span>
@@ -106,40 +106,40 @@ export const TafsirSadiCard: React.FC<TafsirSadiCardProps> = ({
           </div>
         </div>
 
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-800 dark:text-emerald-400 shrink-0">
-          <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-900 shrink-0">
+          <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-700" />
           <span>{tafsir?.sourceLabel || 'مركز تفسير للدراسات القرآنية'}</span>
         </span>
       </div>
 
       {loading ? (
-        <div className="py-10 flex flex-col items-center justify-center gap-2 text-stone-500 dark:text-stone-400">
+        <div className="py-10 flex flex-col items-center justify-center gap-2 text-stone-600">
           <Loader2 className="w-5 h-5 animate-spin text-emerald-700" />
           <span className="text-xs">جاري تحميل تفسير السعدي للآية {surah}:{ayah}…</span>
         </div>
       ) : error ? (
-        <div className="p-4 rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50/70 dark:bg-red-950/20 flex items-center gap-2 text-xs text-red-800 dark:text-red-300">
+        <div className="p-4 rounded-lg border border-red-200 bg-red-50 flex items-center gap-2 text-xs text-red-800">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
       ) : tafsir ? (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {tafsir.ayahText && (
-            <div className="px-4 py-3 rounded-lg bg-[#FCF9F0] dark:bg-stone-900/60 border border-[#D7C9A9]/70 dark:border-stone-800">
-              <div className="font-quran text-xl sm:text-2xl leading-[2] text-stone-900 dark:text-stone-100">
+            <div className="px-4 py-2.5 rounded-lg bg-white border border-[#B6CDA2]/60">
+              <div className="font-quran text-xl sm:text-2xl leading-[1.95] text-stone-900">
                 ﴿{tafsir.ayahText}﴾
               </div>
             </div>
           )}
 
-          <div className="space-y-3 font-corpus-label text-[16px] sm:text-[17px] leading-[2.15] text-stone-800 dark:text-stone-200">
+          <div className="space-y-3 font-corpus-label text-[16px] sm:text-[17px] leading-[2.1] text-stone-900">
             {paragraphs.map((p, idx) => (
               <p key={idx}>{renderTafsirParagraph(p, `tafsir-${surah}-${ayah}-${idx}`)}</p>
             ))}
           </div>
 
-          <div className="pt-3 border-t border-stone-100 dark:border-stone-800 flex items-start gap-2 text-[11px] text-stone-500 dark:text-stone-400">
-            <Info className="w-3.5 h-3.5 mt-0.5 shrink-0 text-stone-400" />
+          <div className="pt-2.5 border-t border-[#B6CDA2]/35 flex items-start gap-2 text-[11px] text-stone-600">
+            <Info className="w-3.5 h-3.5 mt-0.5 shrink-0 text-stone-500" />
             <span>{tafsir.tashkeelPolicy}</span>
           </div>
         </div>

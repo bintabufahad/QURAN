@@ -348,15 +348,15 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
       />
 
       {/* Top Studio Header & 1-Click Example Presets */}
-      <div className="p-5 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-[#141A21] flex flex-wrap items-center justify-between gap-4">
+      <div className="p-5 rounded-2xl border-2 border-[#B6CDA2] bg-[#FCF9F0] text-stone-900 flex flex-wrap items-center justify-between gap-4 shadow-xl">
         <div dir="rtl" className="text-right">
-          <h1 className="font-ar text-xl sm:text-2xl font-bold text-stone-900 dark:text-stone-100">
+          <h1 className="font-ar text-xl sm:text-2xl font-bold text-stone-900">
             منشئ التلاوة المخصصة متعدد القراء
           </h1>
-          <p className="text-[11px] font-medium text-stone-400">
+          <p className="text-[11px] font-medium text-stone-500">
             Create Your Own Recitation — Multi-Reciter & Custom Audio Studio
           </p>
-          <p className="text-xs text-stone-600 dark:text-stone-400 mt-1.5 max-w-2xl">
+          <p className="text-xs text-stone-700 mt-1.5 max-w-2xl">
             ادمج عدة قراء في تلاوة واحدة متصلة بحسب نطاق الآيات، وارفع تسجيلات قارئك المفضل مباشرة داخل أي نطاق آيات ثم أكمل الباقي مع الشيخ أحمد النفيس أو إسلام صبحي أو ناصر القطامي أو عبد الباسط المجود.
           </p>
         </div>
@@ -365,24 +365,24 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
           <button
             type="button"
             onClick={loadBaqarahExamplePreset}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-stone-200 dark:border-stone-700 text-stone-800 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors text-right"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-[#B6CDA2] bg-white text-stone-900 hover:bg-[#B6CDA2]/20 transition-colors text-right"
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
             <span className="leading-tight">
               <span className="block text-xs font-semibold">نموذج البقرة (٣ قراء)</span>
-              <span className="block text-[9.5px] text-stone-400">Al-Baqarah 3-Reciter Example</span>
+              <span className="block text-[9.5px] text-stone-500">Al-Baqarah 3-Reciter Example</span>
             </span>
           </button>
 
           <button
             type="button"
             onClick={loadIncompleteFallbackPreset}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-stone-200 dark:border-stone-700 text-stone-800 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors text-right"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-[#B6CDA2] bg-white text-stone-900 hover:bg-[#B6CDA2]/20 transition-colors text-right"
           >
             <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
             <span className="leading-tight">
               <span className="block text-xs font-semibold">تجربة البديل التلقائي (الصافات)</span>
-              <span className="block text-[9.5px] text-stone-400">Test Missing Surah Fallback</span>
+              <span className="block text-[9.5px] text-stone-500">Test Missing Surah Fallback</span>
             </span>
           </button>
 
@@ -404,16 +404,16 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-[1.35fr_0.65fr] gap-6 items-start">
         {/* LEFT: Range Composer & Incomplete-Collection Fallback Engine */}
         <div className="space-y-5">
-          <div className="p-5 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-[#141A21] space-y-5">
+          <div className="p-5 rounded-2xl border-2 border-[#B6CDA2] bg-[#FCF9F0] text-stone-900 space-y-5 shadow-xl">
             {/* Configuration Metadata Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div dir="rtl">
                 <label
                   htmlFor="recitation-config-name"
-                  className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1"
+                  className="block text-xs font-semibold text-stone-800 mb-1"
                 >
                   اسم التلاوة المخصصة{' '}
-                  <span className="text-[10px] font-normal text-stone-400">
+                  <span className="text-[10px] font-normal text-stone-500">
                     · Configuration Name
                   </span>
                 </label>
@@ -422,17 +422,17 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
                   type="text"
                   value={configName}
                   onChange={(e) => setConfigName(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 text-stone-900 dark:text-stone-100 focus-visible:outline-2 focus-visible:outline-emerald-700"
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-[#B6CDA2] bg-white text-stone-900 focus-visible:outline-2 focus-visible:outline-emerald-700"
                 />
               </div>
 
               <div dir="rtl">
                 <label
                   htmlFor="recitation-surah-select"
-                  className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1"
+                  className="block text-xs font-semibold text-stone-800 mb-1"
                 >
                   السورة المختارة{' '}
-                  <span className="text-[10px] font-normal text-stone-400">
+                  <span className="text-[10px] font-normal text-stone-500">
                     · Target Surah
                   </span>
                 </label>
@@ -440,7 +440,7 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
                   id="recitation-surah-select"
                   value={surah}
                   onChange={(e) => handleSurahChange(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 text-stone-900 dark:text-stone-100 focus-visible:outline-2 focus-visible:outline-emerald-700"
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-[#B6CDA2] bg-white text-stone-900 focus-visible:outline-2 focus-visible:outline-emerald-700"
                 >
                   {chapters.map((ch) => (
                     <option key={ch.id} value={ch.id}>
@@ -454,27 +454,27 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
             {/* Global Incomplete Collection Fallback Policy */}
             <div
               dir="rtl"
-              className="p-4 rounded-xl bg-stone-50 dark:bg-stone-900/50 border border-stone-200/80 dark:border-stone-800 flex flex-wrap items-center justify-between gap-4"
+              className="p-4 rounded-xl bg-white border border-[#B6CDA2]/70 flex flex-wrap items-center justify-between gap-4"
             >
               <div className="space-y-0.5">
-                <div className="text-xs font-semibold text-stone-900 dark:text-stone-100">
+                <div className="text-xs font-semibold text-stone-900">
                   سياسة القارئ البديل عند نقص المصحف{' '}
-                  <span className="text-[10px] font-normal text-stone-400">
+                  <span className="text-[10px] font-normal text-stone-500">
                     · Incomplete Collection Fallback
                   </span>
                 </div>
-                <p className="text-xs text-stone-500 dark:text-stone-400">
+                <p className="text-xs text-stone-600">
                   استبدال القارئ تلقائياً إذا لم يسجل سورة {selectedChapter?.name_arabic || surah}.
                 </p>
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
-                <label className="inline-flex items-center gap-2 text-xs font-medium text-stone-700 dark:text-stone-300 cursor-pointer">
+                <label className="inline-flex items-center gap-2 text-xs font-medium text-stone-800 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={autoFallback}
                     onChange={(e) => setAutoFallback(e.target.checked)}
-                    className="rounded border-stone-300 text-emerald-700 focus:ring-emerald-700"
+                    className="rounded border-[#B6CDA2] text-emerald-700 focus:ring-emerald-700"
                   />
                   <span>تفعيل البديل التلقائي · Auto-Fallback</span>
                 </label>
@@ -483,7 +483,7 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
                   aria-label="القارئ البديل الافتراضي · Default fallback reciter"
                   value={defaultFallbackId}
                   onChange={(e) => setDefaultFallbackId(e.target.value)}
-                  className="px-2.5 py-1.5 text-xs rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-200"
+                  className="px-2.5 py-1.5 text-xs rounded-lg border border-[#B6CDA2] bg-[#FCF9F0] text-stone-900"
                 >
                   {completeFallbackCandidates.slice(0, 25).map((r) => (
                     <option key={r.id} value={r.id}>
@@ -496,16 +496,16 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
 
             {/* Visual Timeline Proportion Bar */}
             <div>
-              <div dir="rtl" className="flex items-center justify-between text-xs text-stone-500 dark:text-stone-400 mb-1.5">
+              <div dir="rtl" className="flex items-center justify-between text-xs text-stone-600 mb-1.5">
                 <span>
                   المخطط الزمني لتلاوة سورة {selectedChapter?.name_arabic || surah}{' '}
-                  <span className="text-[10px] text-stone-400">· Coverage Timeline</span>
+                  <span className="text-[10px] text-stone-500">· Coverage Timeline</span>
                 </span>
                 <span className="font-mono-tabular">
                   الآيات 1 – {maxAyahs}
                 </span>
               </div>
-              <div className="h-3 w-full rounded-md bg-stone-100 dark:bg-stone-800 overflow-hidden flex">
+              <div className="h-3 w-full rounded-md bg-white border border-[#B6CDA2]/60 overflow-hidden flex">
                 {segments.map((seg, idx) => {
                   const span = Math.max(1, seg.endAyah - seg.startAyah + 1);
                   const widthPct = Math.min(100, (span / maxAyahs) * 100);
@@ -523,7 +523,7 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
                         width: `${widthPct}%`,
                         backgroundColor: isMissing ? '#D97706' : colors[idx % colors.length],
                       }}
-                      className="h-full border-r border-white/40 dark:border-black/40 transition-all"
+                      className="h-full border-r border-white/60 transition-all"
                       title={`الآيات ${seg.startAyah}–${seg.endAyah}: ${
                         seg.reciterId === 'custom-upload'
                           ? 'تلاوة مرفوعة (قارئي المفضل)'
@@ -538,16 +538,16 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
             {/* Ayah Range Segments List */}
             <div className="space-y-3">
               <div dir="rtl" className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-stone-900 dark:text-stone-100">
+                <h2 className="text-sm font-semibold text-stone-900">
                   مقاطع نطاقات الآيات ({segments.length}){' '}
-                  <span className="text-[10px] font-normal text-stone-400">
+                  <span className="text-[10px] font-normal text-stone-500">
                     · Ayah Range Segments
                   </span>
                 </h2>
                 <button
                   type="button"
                   onClick={handleAddSegment}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-[#B6CDA2] bg-white text-stone-800 hover:bg-[#B6CDA2]/20 transition-colors"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>إضافة نطاق آيات · Add Range</span>
@@ -566,20 +566,20 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
                     key={seg.id}
                     className={`p-4 rounded-xl border transition-colors ${
                       isSurahMissing && !autoFallback
-                        ? 'border-amber-400 bg-amber-50/50 dark:bg-amber-950/20'
+                        ? 'border-amber-400 bg-amber-50'
                         : isCustom
-                        ? 'border-emerald-600/40 bg-emerald-50/30 dark:bg-emerald-950/15'
-                        : 'border-stone-200 dark:border-stone-800 bg-stone-50/40 dark:bg-[#11161C]'
+                        ? 'border-emerald-600/50 bg-emerald-50/70'
+                        : 'border-[#B6CDA2]/60 bg-white'
                     }`}
                   >
                     <div className="flex flex-wrap items-center gap-3">
-                      <span className="font-mono-tabular text-xs font-semibold text-stone-500 dark:text-stone-400 w-6">
+                      <span className="font-mono-tabular text-xs font-semibold text-stone-500 w-6">
                         0{idx + 1}
                       </span>
 
                       {/* Ayah Start */}
                       <div className="flex items-center gap-1.5">
-                        <label className="text-xs text-stone-600 dark:text-stone-400">
+                        <label className="text-xs text-stone-700">
                           من آية
                         </label>
                         <input
@@ -594,13 +594,13 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
                               endAyah: Math.max(val, seg.endAyah),
                             });
                           }}
-                          className="w-16 px-2 py-1.5 text-xs font-mono-tabular rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100"
+                          className="w-16 px-2 py-1.5 text-xs font-mono-tabular rounded-lg border border-[#B6CDA2] bg-[#FCF9F0] text-stone-900"
                         />
                       </div>
 
                       {/* Ayah End */}
                       <div className="flex items-center gap-1.5">
-                        <label className="text-xs text-stone-600 dark:text-stone-400">
+                        <label className="text-xs text-stone-700">
                           إلى آية
                         </label>
                         <input
@@ -615,7 +615,7 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
                             );
                             updateSegment(idx, { endAyah: val });
                           }}
-                          className="w-16 px-2 py-1.5 text-xs font-mono-tabular rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100"
+                          className="w-16 px-2 py-1.5 text-xs font-mono-tabular rounded-lg border border-[#B6CDA2] bg-[#FCF9F0] text-stone-900"
                         />
                       </div>
 
@@ -635,7 +635,7 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
                                   : undefined,
                             });
                           }}
-                          className="w-full px-3 py-1.5 text-xs font-medium rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100"
+                          className="w-full px-3 py-1.5 text-xs font-medium rounded-lg border border-[#B6CDA2] bg-[#FCF9F0] text-stone-900"
                         >
                           <optgroup label="تلاوتي المفضلة (ملف مرفوع / رابط) · Favourite Upload">
                             <option value="custom-upload">
@@ -669,7 +669,7 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
                           type="button"
                           onClick={() => triggerSegmentUpload(idx)}
                           title="ارفع ملف MP3 لقارئك المفضل لهذا النطاق مباشرة"
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-medium rounded-lg border border-emerald-700/40 bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-950/50 transition-colors"
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-medium rounded-lg border border-emerald-700/40 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 transition-colors"
                         >
                           <Upload className="w-3 h-3" />
                           <span>رفع ملف · Upload MP3</span>
@@ -679,7 +679,7 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
                           type="button"
                           onClick={() => onStartPlayback(buildCurrentConfig(), idx)}
                           title="تشغيل من هذا المقطع · Play from segment"
-                          className="p-1.5 rounded-lg border border-stone-200 dark:border-stone-700 text-emerald-800 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                          className="p-1.5 rounded-lg border border-[#B6CDA2] bg-[#FCF9F0] text-emerald-800 hover:bg-[#B6CDA2]/25"
                         >
                           <Play className="w-3.5 h-3.5" />
                         </button>
@@ -687,7 +687,7 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
                           type="button"
                           onClick={() => handleSplitSegment(idx)}
                           disabled={seg.endAyah - seg.startAyah < 1}
-                          className="px-2 py-1 text-[11px] font-medium rounded-lg border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 disabled:opacity-40"
+                          className="px-2 py-1 text-[11px] font-medium rounded-lg border border-[#B6CDA2] bg-[#FCF9F0] text-stone-800 hover:bg-[#B6CDA2]/25 disabled:opacity-40"
                         >
                           تقسيم · Split
                         </button>
@@ -696,7 +696,7 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
                           onClick={() => removeSegment(idx)}
                           disabled={segments.length <= 1}
                           aria-label="حذف المقطع"
-                          className="p-1.5 rounded-lg text-stone-400 hover:text-red-600 disabled:opacity-30"
+                          className="p-1.5 rounded-lg text-stone-500 hover:text-red-600 disabled:opacity-30"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -707,12 +707,12 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
                     {isCustom && (
                       <div
                         dir="rtl"
-                        className="mt-3 pt-3 border-t border-emerald-200/70 dark:border-emerald-900/50 space-y-2.5 text-xs"
+                        className="mt-3 pt-3 border-t border-emerald-200 space-y-2.5 text-xs"
                       >
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="flex flex-wrap items-center gap-2">
-                            <Music2 className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
-                            <span className="font-semibold text-stone-800 dark:text-stone-200">
+                            <Music2 className="w-3.5 h-3.5 text-emerald-700" />
+                            <span className="font-semibold text-stone-800">
                               تسجيل قارئك المفضل لهذا النطاق ({seg.startAyah}–{seg.endAyah}):
                             </span>
                             {customAudioSources.length > 0 ? (
@@ -721,7 +721,7 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
                                 onChange={(e) =>
                                   updateSegment(idx, { customAudioId: e.target.value })
                                 }
-                                className="px-2.5 py-1 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100"
+                                className="px-2.5 py-1 rounded-lg border border-[#B6CDA2] bg-white text-stone-900"
                               >
                                 {customAudioSources.map((src) => (
                                   <option key={src.id} value={src.id}>
@@ -730,7 +730,7 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
                                 ))}
                               </select>
                             ) : (
-                              <span className="text-amber-700 dark:text-amber-400">
+                              <span className="text-amber-700">
                                 لم يتم رفع ملف صوتي بعد — ارفع ملف MP3 الآن أو الصق رابطاً أدناه.
                               </span>
                             )}
@@ -761,13 +761,13 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
                                 [seg.id]: e.target.value,
                               }))
                             }
-                            className="flex-1 px-2.5 py-1.5 text-xs rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100"
+                            className="flex-1 px-2.5 py-1.5 text-xs rounded-lg border border-[#B6CDA2] bg-white text-stone-900"
                           />
                           <button
                             type="button"
                             disabled={!(inlineUrlInputs[seg.id] || '').trim()}
                             onClick={() => handleAddCustomUrl(idx, inlineUrlInputs[seg.id])}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 disabled:opacity-40"
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#B6CDA2] text-black font-bold hover:bg-[#a3be8c] disabled:opacity-40"
                           >
                             <LinkIcon className="w-3 h-3" />
                             <span>ربط · Attach</span>
@@ -780,10 +780,10 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
                     {isSurahMissing && (
                       <div
                         dir="rtl"
-                        className="mt-3 pt-3 border-t border-amber-200/80 dark:border-amber-900/50 flex flex-wrap items-center justify-between gap-3 text-xs"
+                        className="mt-3 pt-3 border-t border-amber-200 flex flex-wrap items-center justify-between gap-3 text-xs"
                       >
-                        <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300">
-                          <AlertTriangle className="w-4 h-4 shrink-0" />
+                        <div className="flex items-center gap-2 text-amber-900">
+                          <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
                           <span>
                             سورة {selectedChapter?.name_arabic || seg.surah} غير متوفرة لدى{' '}
                             <strong>{rec.arabicName || rec.name}</strong> ({rec.surahTotal}/114 سورة).
@@ -803,7 +803,7 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
                           onChange={(e) =>
                             updateSegment(idx, { fallbackReciterId: e.target.value })
                           }
-                          className="px-2.5 py-1 rounded-lg border border-amber-300 dark:border-amber-800 bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-200"
+                          className="px-2.5 py-1 rounded-lg border border-amber-300 bg-[#FCF9F0] text-stone-900"
                         >
                           {completeFallbackCandidates.slice(0, 25).map((r) => (
                             <option key={r.id} value={r.id}>
@@ -818,9 +818,9 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
                     {!isCustom && rec && !isSurahMissing && (
                       <div
                         dir="rtl"
-                        className="mt-2 flex items-center gap-2 text-[11px] text-stone-500 dark:text-stone-400"
+                        className="mt-2 flex items-center gap-2 text-[11px] text-stone-600"
                       >
-                        <CheckCircle2 className="w-3 h-3 text-emerald-700 dark:text-emerald-400 shrink-0" />
+                        <CheckCircle2 className="w-3 h-3 text-emerald-700 shrink-0" />
                         <span>
                           سورة {selectedChapter?.name_arabic || seg.surah} متوفرة ·{' '}
                           {rec.hasExactAyahTiming
@@ -835,8 +835,8 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
             </div>
 
             {/* Save Row */}
-            <div className="pt-4 border-t border-stone-200 dark:border-stone-800 flex flex-wrap items-center justify-between gap-3">
-              <div className="text-xs text-emerald-800 dark:text-emerald-400 font-medium">
+            <div className="pt-4 border-t border-[#B6CDA2]/40 flex flex-wrap items-center justify-between gap-3">
+              <div className="text-xs text-emerald-800 font-medium">
                 {saveBanner || ''}
               </div>
               <div className="flex items-center gap-2.5">
@@ -844,7 +844,7 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
                   type="button"
                   onClick={handleSave}
                   disabled={saving}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-lg border border-stone-200 dark:border-stone-700 text-stone-800 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-lg border border-[#B6CDA2] bg-white text-stone-900 hover:bg-[#B6CDA2]/20 transition-colors"
                 >
                   <Save className="w-3.5 h-3.5" />
                   <span>{saving ? 'جارٍ الحفظ…' : 'حفظ الترتيب · Save'}</span>
@@ -864,14 +864,14 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
           {/* Saved Custom Recitation Configurations */}
           <div
             dir="rtl"
-            className="p-5 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-[#141A21]"
+            className="p-5 rounded-2xl border-2 border-[#B6CDA2] bg-[#FCF9F0] text-stone-900 shadow-xl"
           >
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <FolderOpen className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
-                <h3 className="text-sm font-semibold text-stone-900 dark:text-stone-100">
+                <FolderOpen className="w-4 h-4 text-emerald-800" />
+                <h3 className="text-sm font-semibold text-stone-900">
                   التلاوات المحفوظة ({savedPlaylists.length}){' '}
-                  <span className="text-[10px] font-normal text-stone-400">
+                  <span className="text-[10px] font-normal text-stone-500">
                     · Saved Configurations
                   </span>
                 </h3>
@@ -879,11 +879,11 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
             </div>
 
             {savedPlaylists.length === 0 ? (
-              <p className="text-xs text-stone-500 dark:text-stone-400 py-3">
+              <p className="text-xs text-stone-600 py-3">
                 لا توجد قوائم محفوظة بعد. رتب المقاطع أعلاه ثم اضغط «حفظ الترتيب» للرجوع إليها في أي وقت.
               </p>
             ) : (
-              <div className="divide-y divide-stone-100 dark:divide-stone-800">
+              <div className="divide-y divide-[#B6CDA2]/30">
                 {savedPlaylists.map((pl) => {
                   const ch = chapters.find((c) => c.id === pl.surah);
                   const isActive = activeConfigId === pl.id;
@@ -893,10 +893,10 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
                       className="py-3 flex flex-wrap items-center justify-between gap-3"
                     >
                       <div className="min-w-0">
-                        <div className="text-sm font-medium text-stone-900 dark:text-stone-100 truncate">
+                        <div className="text-sm font-medium text-stone-900 truncate">
                           {pl.name}
                         </div>
-                        <div className="text-xs text-stone-500 dark:text-stone-400">
+                        <div className="text-xs text-stone-600">
                           سورة {ch?.name_arabic || pl.surah} ({ch?.name_simple}) · {pl.segments.length} مقاطع
                         </div>
                       </div>
@@ -904,7 +904,7 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
                         <button
                           type="button"
                           onClick={() => handleLoadPlaylist(pl)}
-                          className="px-3 py-1.5 text-xs font-medium rounded-lg border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800"
+                          className="px-3 py-1.5 text-xs font-medium rounded-lg border border-[#B6CDA2] bg-white text-stone-800 hover:bg-[#B6CDA2]/20"
                         >
                           تعديل · Edit
                         </button>
@@ -914,7 +914,7 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
                           className={`inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg ${
                             isActive
                               ? 'bg-emerald-800 text-white'
-                              : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-300 border border-emerald-700/30'
+                              : 'bg-emerald-50 text-emerald-900 border border-emerald-700/30'
                           }`}
                         >
                           <Play className="w-3 h-3" />
@@ -924,7 +924,7 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
                           type="button"
                           onClick={() => onDeletePlaylist(pl.id)}
                           aria-label={`حذف ${pl.name}`}
-                          className="p-1.5 text-stone-400 hover:text-red-600"
+                          className="p-1.5 text-stone-500 hover:text-red-600"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -942,16 +942,16 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
           {/* Custom Favourite Reciter Audio Library */}
           <div
             dir="rtl"
-            className="p-5 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-[#141A21] space-y-4"
+            className="p-5 rounded-2xl border-2 border-[#B6CDA2] bg-[#FCF9F0] text-stone-900 space-y-4 shadow-xl"
           >
             <div>
-              <h3 className="text-sm font-semibold text-stone-900 dark:text-stone-100">
+              <h3 className="text-sm font-semibold text-stone-900">
                 مكتبة قارئي المفضل (ملفات مرفوعة)
               </h3>
-              <p className="text-[10px] text-stone-400">
+              <p className="text-[10px] text-stone-500">
                 Favourite Reciter Library (Local Uploads & Audio URLs)
               </p>
-              <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
+              <p className="text-xs text-stone-600 mt-1">
                 ارفع التسجيلات المتوفرة لديك على جهازك (MP3 / WAV / M4A) لإدراجها في أي نطاق آيات ثم الانتقال تلقائياً لأي قارئ آخر.
               </p>
             </div>
@@ -962,7 +962,7 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
                 placeholder="اسم المقطع (مثال: تلاوة نادرة — البقرة ١٢٢–١٣٠)"
                 value={customLabelInput}
                 onChange={(e) => setCustomLabelInput(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-lg border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 text-stone-900 dark:text-stone-100"
+                className="w-full px-3 py-2 text-xs rounded-lg border border-[#B6CDA2] bg-white text-stone-900"
               />
 
               <input
@@ -975,7 +975,7 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
               <button
                 type="button"
                 onClick={() => libraryFileInputRef.current?.click()}
-                className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium rounded-lg border border-dashed border-emerald-700/50 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-900 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors"
+                className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium rounded-lg border border-dashed border-emerald-700/60 bg-white text-emerald-900 hover:bg-emerald-50 transition-colors"
               >
                 <Upload className="w-3.5 h-3.5" />
                 <span>رفع ملف صوتي للمكتبة (MP3 / WAV / M4A)</span>
@@ -987,13 +987,13 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
                   placeholder="أو الصق رابط ملف MP3 مباشر…"
                   value={customUrlInput}
                   onChange={(e) => setCustomUrlInput(e.target.value)}
-                  className="flex-1 px-3 py-1.5 text-xs rounded-lg border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 text-stone-900 dark:text-stone-100"
+                  className="flex-1 px-3 py-1.5 text-xs rounded-lg border border-[#B6CDA2] bg-white text-stone-900"
                 />
                 <button
                   type="button"
                   onClick={() => handleAddCustomUrl(null)}
                   disabled={!customUrlInput.trim()}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 disabled:opacity-40"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg bg-[#B6CDA2] text-black hover:bg-[#a3be8c] disabled:opacity-40"
                 >
                   <LinkIcon className="w-3 h-3" />
                   <span>إضافة</span>
@@ -1002,17 +1002,17 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
             </div>
 
             {customAudioSources.length > 0 && (
-              <div className="pt-3 border-t border-stone-200 dark:border-stone-800 space-y-2">
+              <div className="pt-3 border-t border-[#B6CDA2]/40 space-y-2">
                 {customAudioSources.map((src) => (
                   <div
                     key={src.id}
-                    className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-stone-50 dark:bg-stone-900/50 text-xs"
+                    className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-white border border-[#B6CDA2]/40 text-xs"
                   >
                     <div className="min-w-0">
-                      <div className="font-medium text-stone-900 dark:text-stone-100 truncate">
+                      <div className="font-medium text-stone-900 truncate">
                         {src.label}
                       </div>
-                      <div className="text-[11px] text-stone-500 dark:text-stone-400">
+                      <div className="text-[11px] text-stone-500">
                         {src.isLocalUpload ? `محفوظ محلياً (${src.fileName})` : src.url}
                       </div>
                     </div>
@@ -1020,7 +1020,7 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
                       type="button"
                       onClick={() => handleDeleteCustomSource(src)}
                       aria-label={`حذف ${src.label}`}
-                      className="p-1 text-stone-400 hover:text-red-600"
+                      className="p-1 text-stone-500 hover:text-red-600"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -1033,50 +1033,48 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
           {/* Reciters & Collection Completeness Directory */}
           <div
             dir="rtl"
-            className="p-5 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-[#141A21] space-y-4"
+            className="p-5 rounded-2xl border-2 border-[#B6CDA2] bg-[#FCF9F0] text-stone-900 space-y-4 shadow-xl"
           >
             <div>
-              <h3 className="text-sm font-semibold text-stone-900 dark:text-stone-100">
+              <h3 className="text-sm font-semibold text-stone-900">
                 دليل القراء وتوافر السور ({reciters.length} قارئاً)
               </h3>
-              <p className="text-[10px] text-stone-400">
+              <p className="text-[10px] text-stone-500">
                 Reciter Collection Completeness & Mujawwad Editions
               </p>
-              <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
+              <p className="text-xs text-stone-600 mt-1">
                 يشمل عبد الباسط والمنشاوي والحصري بالمصحف المجود الأطول، مع القطامي والنفيس والعفاسي وإسلام صبحي.
               </p>
             </div>
 
             <div className="relative">
-              <Search className="w-3.5 h-3.5 text-stone-400 absolute right-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-3.5 h-3.5 text-stone-500 absolute right-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="ابحث عن قارئ (عبد الباسط، المنشاوي، الحصري، القطامي)…"
                 value={reciterSearch}
                 onChange={(e) => setReciterSearch(e.target.value)}
-                className="w-full pr-8 pl-3 py-2 text-xs rounded-lg border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 text-stone-900 dark:text-stone-100"
+                className="w-full pr-8 pl-3 py-2 text-xs rounded-lg border border-[#B6CDA2] bg-white text-stone-900"
               />
             </div>
 
-            <div className="max-h-[420px] overflow-y-auto custom-scrollbar divide-y divide-stone-100 dark:divide-stone-800">
+            <div className="max-h-[420px] overflow-y-auto custom-scrollbar divide-y divide-[#B6CDA2]/30">
               {filteredCatalog.map((r) => {
                 const availableInCurrentSurah = r.availableSurahs.includes(surah);
                 return (
                   <div key={r.id} className="py-2.5 space-y-1">
                     <div className="flex items-center justify-between gap-2">
                       <div className="min-w-0">
-                        <div className="text-xs font-semibold text-stone-900 dark:text-stone-100 truncate">
+                        <div className="text-xs font-semibold text-stone-900 truncate">
                           {r.arabicName || r.name}
                         </div>
-                        <div className="text-[10px] text-stone-400 truncate">
+                        <div className="text-[10px] text-stone-500 truncate">
                           {r.name} · {r.rewaya}
                         </div>
                       </div>
                       <span
                         className={`text-[11px] font-mono-tabular font-semibold whitespace-nowrap shrink-0 ${
-                          r.isComplete
-                            ? 'text-emerald-800 dark:text-emerald-400'
-                            : 'text-amber-700 dark:text-amber-400'
+                          r.isComplete ? 'text-emerald-800' : 'text-amber-700'
                         }`}
                       >
                         {r.surahTotal}/114
@@ -1084,7 +1082,7 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
                     </div>
 
                     <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-stone-500 dark:text-stone-400">
+                      <span className="text-stone-600">
                         {r.hasExactAyahTiming
                           ? 'توقيت دقيق بالآية · Exact Timings'
                           : 'ملف سورة متصلة · Surah MP3'}
@@ -1092,8 +1090,8 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
                       <span
                         className={
                           availableInCurrentSurah
-                            ? 'text-emerald-700 dark:text-emerald-400'
-                            : 'text-amber-700 dark:text-amber-400 font-medium'
+                            ? 'text-emerald-800'
+                            : 'text-amber-700 font-medium'
                         }
                       >
                         {availableInCurrentSurah
@@ -1103,7 +1101,7 @@ export const RecitationBuilder: React.FC<RecitationBuilderProps> = ({
                     </div>
 
                     {!r.isComplete && r.missingSurahs.length <= 10 && (
-                      <div className="text-[11px] text-stone-500 dark:text-stone-400 flex items-center gap-1">
+                      <div className="text-[11px] text-stone-600 flex items-center gap-1">
                         <Volume2 className="w-3 h-3 shrink-0" />
                         <span>السور الناقصة: {r.missingSurahs.join('، ')}</span>
                       </div>

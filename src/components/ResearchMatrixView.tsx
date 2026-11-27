@@ -23,72 +23,72 @@ export const ResearchMatrixView: React.FC<ResearchMatrixViewProps> = ({
   const featuredReciters = reciters.filter((r) => r.featured);
 
   return (
-    <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-6 space-y-6">
+    <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-4 space-y-5">
       <div
         dir="rtl"
-        className="p-6 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-[#141A21]"
+        className="p-6 rounded-2xl border-2 border-[#B6CDA2] bg-[#FCF9F0] text-stone-900 shadow-lg"
       >
-        <h1 className="font-ar text-xl sm:text-2xl font-bold text-stone-900 dark:text-stone-100">
+        <h1 className="font-ar text-xl sm:text-2xl font-bold text-stone-900">
           تدقيق مصادر القرآن والإعراب والتلاوات
         </h1>
-        <p className="text-[11px] font-medium text-stone-400">
+        <p className="text-[11px] font-medium text-stone-500">
           Quranic Linguistic, Mushaf & Audio Dataset Audit
         </p>
-        <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-400 mt-1.5 max-w-3xl">
+        <p className="text-xs sm:text-sm text-stone-700 mt-1.5 max-w-3xl">
           تغطية موثقة بالكامل عبر مصحف مجمع الملك فهد (طبعة ١٤٤١هـ)، ومدونة القرآن الكريم (QAC v2.0)، وشجرة الإعراب الموسعة (NoorBayan EQTB)، ومكتبة MP3Quran v3 — بتغطية شاملة بنسبة ١٠٠٪ لآيات القرآن دون أي تخمين.
         </p>
 
         {/* Audited Live Counters */}
         {coverage && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-5 pt-5 border-t border-stone-200 dark:border-stone-800">
-            <div>
-              <div className="text-xs font-semibold text-stone-700 dark:text-stone-300">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-5 pt-5 border-t border-[#B6CDA2]/50">
+            <div className="bg-white p-3 rounded-xl border border-[#B6CDA2]/50">
+              <div className="text-xs font-semibold text-stone-700">
                 التحليل الصرفي كلمة بكلمة
               </div>
-              <div className="text-[10px] text-stone-400">Word-by-Word Morphology</div>
-              <div className="text-2xl font-display font-semibold text-stone-900 dark:text-stone-100 font-mono-tabular mt-0.5">
+              <div className="text-[10px] text-stone-500">Word-by-Word Morphology</div>
+              <div className="text-2xl font-display font-semibold text-stone-900 font-mono-tabular mt-0.5">
                 {coverage.totalQuranWords.toLocaleString()}
               </div>
-              <div className="text-xs text-emerald-800 dark:text-emerald-400 mt-0.5">
+              <div className="text-xs text-emerald-800 mt-0.5">
                 ١٠٠٪ من {coverage.totalQuranAyahs.toLocaleString()} آية ({coverage.totalMorphSegments.toLocaleString()} وحدة صرفية)
               </div>
             </div>
 
-            <div>
-              <div className="text-xs font-semibold text-stone-700 dark:text-stone-300">
+            <div className="bg-white p-3 rounded-xl border border-[#B6CDA2]/50">
+              <div className="text-xs font-semibold text-stone-700">
                 الشجر النحوي المعتمد (QAC v2.0)
               </div>
-              <div className="text-[10px] text-stone-400">QAC v2.0 Gold Treebank</div>
-              <div className="text-2xl font-display font-semibold text-stone-900 dark:text-stone-100 font-mono-tabular mt-0.5">
+              <div className="text-[10px] text-stone-500">QAC v2.0 Gold Treebank</div>
+              <div className="text-2xl font-display font-semibold text-stone-900 font-mono-tabular mt-0.5">
                 {coverage.goldTreebankAyahs.toLocaleString()} / 6,236
               </div>
-              <div className="text-xs text-emerald-800 dark:text-emerald-400 mt-0.5">
+              <div className="text-xs text-emerald-800 mt-0.5">
                 {coverage.goldTreebankCoveragePct}% ({coverage.goldTreebankSurahs} سورة في syntax.txt)
               </div>
             </div>
 
-            <div>
-              <div className="text-xs font-semibold text-stone-700 dark:text-stone-300">
+            <div className="bg-white p-3 rounded-xl border border-[#B6CDA2]/50">
+              <div className="text-xs font-semibold text-stone-700">
                 التكملة الشجرية (NoorBayan EQTB)
               </div>
-              <div className="text-[10px] text-stone-400">Extended Quranic Treebank</div>
-              <div className="text-2xl font-display font-semibold text-stone-900 dark:text-stone-100 font-mono-tabular mt-0.5">
+              <div className="text-[10px] text-stone-500">Extended Quranic Treebank</div>
+              <div className="text-2xl font-display font-semibold text-stone-900 font-mono-tabular mt-0.5">
                 {coverage.eqtbAyahs.toLocaleString()} / 6,236
               </div>
-              <div className="text-xs text-sky-800 dark:text-sky-400 mt-0.5">
+              <div className="text-xs text-sky-800 mt-0.5">
                 {coverage.eqtbCoveragePct}% (التوبة ٩٢–١٢٩ والسور ١٠–٥٨)
               </div>
             </div>
 
-            <div>
-              <div className="text-xs font-semibold text-stone-700 dark:text-stone-300">
+            <div className="bg-white p-3 rounded-xl border border-[#B6CDA2]/50">
+              <div className="text-xs font-semibold text-stone-700">
                 التغطية الكلية لشجر الإعراب
               </div>
-              <div className="text-[10px] text-stone-400">Combined Graph Coverage</div>
-              <div className="text-2xl font-display font-semibold text-stone-900 dark:text-stone-100 font-mono-tabular mt-0.5">
+              <div className="text-[10px] text-stone-500">Combined Graph Coverage</div>
+              <div className="text-2xl font-display font-semibold text-stone-900 font-mono-tabular mt-0.5">
                 {(coverage.goldTreebankAyahs + coverage.eqtbAyahs).toLocaleString()} / 6,236
               </div>
-              <div className="text-xs text-emerald-800 dark:text-emerald-400 mt-0.5">
+              <div className="text-xs text-emerald-800 mt-0.5">
                 ١٠٠٪ موثق بالبيانات · {coverage.irabCoveredAyahs.toLocaleString()} آية إعراب نصي
               </div>
             </div>
@@ -99,24 +99,24 @@ export const ResearchMatrixView: React.FC<ResearchMatrixViewProps> = ({
       {/* Comparison Matrix */}
       <div
         dir="rtl"
-        className="p-6 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-[#141A21] space-y-4"
+        className="p-6 rounded-2xl border-2 border-[#B6CDA2] bg-[#FCF9F0] text-stone-900 shadow-lg space-y-4"
       >
         <div className="flex items-center gap-2">
-          <Database className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
+          <Database className="w-4 h-4 text-emerald-800" />
           <div>
-            <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">
+            <h2 className="text-base font-semibold text-stone-900">
               مقارنة مصادر البيانات اللغوية والمصحف والصوتيات
             </h2>
-            <p className="text-[10px] text-stone-400">
+            <p className="text-[10px] text-stone-500">
               Linguistic, Mushaf & Audio Provider Comparison
             </p>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto bg-white rounded-xl border border-[#B6CDA2]/50 p-3">
           <table className="w-full text-right border-collapse text-xs">
             <thead>
-              <tr className="border-b border-stone-200 dark:border-stone-800 text-stone-500 dark:text-stone-400">
+              <tr className="border-b border-[#B6CDA2]/40 text-stone-600">
                 <th className="py-2.5 pl-4 font-semibold">
                   المصدر / قاعدة البيانات
                   <span className="block text-[9.5px] font-normal text-stone-400">Provider</span>
@@ -139,16 +139,16 @@ export const ResearchMatrixView: React.FC<ResearchMatrixViewProps> = ({
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-100 dark:divide-stone-800 text-stone-700 dark:text-stone-300">
+            <tbody className="divide-y divide-stone-100 text-stone-700">
               <tr>
-                <td className="py-3 pl-4 font-semibold text-stone-900 dark:text-stone-100">
+                <td className="py-3 pl-4 font-semibold text-stone-900">
                   مدونة القرآن الكريم (QAC v2.0 · ليدز)
-                  <div className="text-[10px] font-normal text-stone-400">
+                  <div className="text-[10px] font-normal text-stone-500">
                     Quranic Arabic Corpus v2.0
                   </div>
                 </td>
                 <td className="py-3 pl-4">
-                  <span className="text-emerald-800 dark:text-emerald-400 font-medium">
+                  <span className="text-emerald-800 font-medium">
                     ١٠٠٪ صرف (77,429 كلمة)
                   </span>
                   <div className="text-stone-500">٣٩.١٪ شجر نحوي معتمد (2,436 آية)</div>
@@ -167,14 +167,14 @@ export const ResearchMatrixView: React.FC<ResearchMatrixViewProps> = ({
               </tr>
 
               <tr>
-                <td className="py-3 pl-4 font-semibold text-stone-900 dark:text-stone-100">
+                <td className="py-3 pl-4 font-semibold text-stone-900">
                   الشجرة القرآنية الموسعة (NoorBayan EQTB)
-                  <div className="text-[10px] font-normal text-stone-400">
+                  <div className="text-[10px] font-normal text-stone-500">
                     Extended Quranic Treebank
                   </div>
                 </td>
                 <td className="py-3 pl-4">
-                  <span className="text-sky-800 dark:text-sky-400 font-medium">
+                  <span className="text-sky-800 font-medium">
                     ١٠٠٪ من القرآن (6,236 آية)
                   </span>
                 </td>
@@ -191,33 +191,14 @@ export const ResearchMatrixView: React.FC<ResearchMatrixViewProps> = ({
               </tr>
 
               <tr>
-                <td className="py-3 pl-4 font-semibold text-stone-900 dark:text-stone-100">
-                  مكتبة ترتيل الشاملة (QUL · TarteelAI)
-                  <div className="text-[10px] font-normal text-stone-400">QUL Database</div>
-                </td>
-                <td className="py-3 pl-4">
-                  <span className="text-amber-700 dark:text-amber-400 font-medium">
-                    جزئية / تحرير مجتمعي
-                  </span>
-                </td>
-                <td className="py-3 pl-4">
-                  بها فجوات وتفاوتات معروفة في بعض الآيات
-                </td>
-                <td className="py-3 pl-4">قواعد بيانات قابلة للتنزيل</td>
-                <td className="py-3">
-                  تم تجاوزها والاعتماد على دمج QAC v2.0 الأصلي مع NoorBayan EQTB لدقة أعلى وتغطية ١٠٠٪.
-                </td>
-              </tr>
-
-              <tr>
-                <td className="py-3 pl-4 font-semibold text-stone-900 dark:text-stone-100">
+                <td className="py-3 pl-4 font-semibold text-stone-900">
                   مصحف مجمع الملك فهد (طبعة ١٤٤١هـ · V4)
-                  <div className="text-[10px] font-normal text-stone-400">
+                  <div className="text-[10px] font-normal text-stone-500">
                     KFGQPC V4 COLRv1 & Quran.com v4
                   </div>
                 </td>
                 <td className="py-3 pl-4">
-                  <span className="text-emerald-800 dark:text-emerald-400 font-medium">
+                  <span className="text-emerald-800 font-medium">
                     ١٠٠٪ (٦٠٤ صفحات مدنية)
                   </span>
                 </td>
@@ -233,33 +214,33 @@ export const ResearchMatrixView: React.FC<ResearchMatrixViewProps> = ({
               </tr>
 
               <tr>
-                <td className="py-3 pl-4 font-semibold text-stone-900 dark:text-stone-100">
-                  تفسير السعدي (مركز تفسير للدراسات القرآنية)
-                  <div className="text-[10px] font-normal text-stone-400">
-                    Tafsīr al-Sa‘dī · tafsir.app & Quran.com #91
+                <td className="py-3 pl-4 font-semibold text-stone-900">
+                  تفسير السعدي (بالعربية والإنجليزية)
+                  <div className="text-[10px] font-normal text-stone-500">
+                    Tafsīr al-Sa‘dī · tafsir.app & English rendering
                   </div>
                 </td>
                 <td className="py-3 pl-4">
-                  <span className="text-emerald-800 dark:text-emerald-400 font-medium">
+                  <span className="text-emerald-800 font-medium">
                     ١٠٠٪ (6,236 آية)
                   </span>
                 </td>
                 <td className="py-3 pl-4">تفسير علمي موثق</td>
                 <td className="py-3 pl-4">
-                  تيسير الكريم الرحمن في تفسير كلام المنان (النص الأصلي مضبوط الآيات دون تشكيل آلي مضاف)
+                  تيسير الكريم الرحمن في تفسير كلام المنان مع الترجمة الإنجليزية الكاملة
                 </td>
                 <td className="py-3">
-                  عرض تفسير كل آية مباشرة في المصحف والمختبر النحوي من الطبعة الرقمية المعتمدة.
+                  عرض تفسير كل آية مباشرة في لوحة التفسير بالعربية والإنجليزية.
                 </td>
               </tr>
 
               <tr>
-                <td className="py-3 pl-4 font-semibold text-stone-900 dark:text-stone-100">
+                <td className="py-3 pl-4 font-semibold text-stone-900">
                   واجهة MP3Quran API v3
-                  <div className="text-[10px] font-normal text-stone-400">MP3Quran Audio API</div>
+                  <div className="text-[10px] font-normal text-stone-500">MP3Quran Audio API</div>
                 </td>
                 <td className="py-3 pl-4">
-                  <span className="text-emerald-800 dark:text-emerald-400 font-medium">
+                  <span className="text-emerald-800 font-medium">
                     أكثر من ١٥٠ قارئاً (كاملة وناقصة)
                   </span>
                 </td>
@@ -269,7 +250,7 @@ export const ResearchMatrixView: React.FC<ResearchMatrixViewProps> = ({
                   <code className="font-mono-tabular">ayat_timing</code>
                 </td>
                 <td className="py-3">
-                  يشغل منشئ التلاوات المتعدد القراء مع دعم المصاحف المجودة والناقصة والبديل التلقائي.
+                  يشغل مشغل الآيات ومنشئ التلاوات المتعدد القراء مع دعم البديل التلقائي.
                 </td>
               </tr>
             </tbody>
@@ -278,15 +259,15 @@ export const ResearchMatrixView: React.FC<ResearchMatrixViewProps> = ({
       </div>
 
       {/* Two-Column Breakdown: Treebank Coverage Blocks & Audio Reciter Coverage */}
-      <div dir="rtl" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="p-6 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-[#141A21] space-y-4">
+      <div dir="rtl" className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="p-6 rounded-2xl border-2 border-[#B6CDA2] bg-[#FCF9F0] space-y-4 shadow-lg">
           <div className="flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
+            <BookOpen className="w-4 h-4 text-emerald-800" />
             <div>
-              <h3 className="text-sm font-semibold text-stone-900 dark:text-stone-100">
+              <h3 className="text-sm font-semibold text-stone-900">
                 نطاقات شجر الإعراب الموثقة بنسبة ١٠٠٪
               </h3>
-              <p className="text-[10px] text-stone-400">
+              <p className="text-[10px] text-stone-500">
                 100% Dataset-Backed Dependency Graph Ranges
               </p>
             </div>
@@ -298,23 +279,23 @@ export const ResearchMatrixView: React.FC<ResearchMatrixViewProps> = ({
               return (
                 <div
                   key={block.range}
-                  className="p-3.5 rounded-lg border border-stone-200/80 dark:border-stone-800 bg-stone-50/60 dark:bg-stone-900/40 flex items-center justify-between gap-3"
+                  className="p-3.5 rounded-xl border border-[#B6CDA2]/60 bg-white flex items-center justify-between gap-3"
                 >
                   <div>
-                    <div className="text-xs font-semibold text-stone-900 dark:text-stone-100">
+                    <div className="text-xs font-semibold text-stone-900">
                       {block.range}
                     </div>
-                    <div className="text-xs text-stone-500 dark:text-stone-400 mt-0.5 flex items-center gap-1.5">
+                    <div className="text-xs text-stone-600 mt-0.5 flex items-center gap-1.5">
                       {isGold ? (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400 shrink-0" />
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
                       ) : (
-                        <Database className="w-3.5 h-3.5 text-sky-700 dark:text-sky-400 shrink-0" />
+                        <Database className="w-3.5 h-3.5 text-sky-700 shrink-0" />
                       )}
                       <span>{block.status}</span>
                     </div>
                   </div>
                   <div className="text-left shrink-0">
-                    <div className="text-xs font-mono-tabular font-semibold text-stone-900 dark:text-stone-100">
+                    <div className="text-xs font-mono-tabular font-semibold text-stone-900">
                       {block.ayahs.toLocaleString()} آية
                     </div>
                     <button
@@ -325,7 +306,7 @@ export const ResearchMatrixView: React.FC<ResearchMatrixViewProps> = ({
                           1
                         )
                       }
-                      className="text-[11px] text-emerald-800 dark:text-emerald-400 hover:underline mt-0.5"
+                      className="text-[11px] text-emerald-800 hover:underline mt-0.5"
                     >
                       معاينة مثال · Inspect ←
                     </button>
@@ -336,32 +317,32 @@ export const ResearchMatrixView: React.FC<ResearchMatrixViewProps> = ({
           </div>
         </div>
 
-        <div className="p-6 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-[#141A21] space-y-4">
+        <div className="p-6 rounded-2xl border-2 border-[#B6CDA2] bg-[#FCF9F0] space-y-4 shadow-lg">
           <div className="flex items-center gap-2">
-            <Volume2 className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
+            <Volume2 className="w-4 h-4 text-emerald-800" />
             <div>
-              <h3 className="text-sm font-semibold text-stone-900 dark:text-stone-100">
+              <h3 className="text-sm font-semibold text-stone-900">
                 تدقيق القراء المعتمدين والتوقيت والمصاحف المجودة
               </h3>
-              <p className="text-[10px] text-stone-400">
+              <p className="text-[10px] text-stone-500">
                 Featured Reciters Audio & Timing Audit
               </p>
             </div>
           </div>
 
-          <div className="divide-y divide-stone-100 dark:divide-stone-800 text-xs">
+          <div className="divide-y divide-[#B6CDA2]/30 text-xs bg-white rounded-xl border border-[#B6CDA2]/50 px-3">
             {featuredReciters.map((r) => (
               <div key={r.id} className="py-2.5 flex items-center justify-between gap-3">
                 <div>
-                  <div className="font-semibold text-stone-900 dark:text-stone-100">
+                  <div className="font-semibold text-stone-900">
                     {r.arabicName || r.name}
                   </div>
-                  <div className="text-[10px] text-stone-400">{r.name}</div>
-                  <div className="text-stone-500 dark:text-stone-400 mt-0.5 flex items-center gap-1.5">
+                  <div className="text-[10px] text-stone-500">{r.name}</div>
+                  <div className="text-stone-600 mt-0.5 flex items-center gap-1.5">
                     {r.isComplete ? (
-                      <CheckCircle2 className="w-3 h-3 text-emerald-700 dark:text-emerald-400 shrink-0" />
+                      <CheckCircle2 className="w-3 h-3 text-emerald-700 shrink-0" />
                     ) : (
-                      <AlertTriangle className="w-3 h-3 text-amber-600 dark:text-amber-400 shrink-0" />
+                      <AlertTriangle className="w-3 h-3 text-amber-600 shrink-0" />
                     )}
                     <span>
                       {r.hasExactAyahTiming
@@ -375,9 +356,7 @@ export const ResearchMatrixView: React.FC<ResearchMatrixViewProps> = ({
                 </div>
                 <span
                   className={`font-mono-tabular font-semibold shrink-0 ${
-                    r.isComplete
-                      ? 'text-emerald-800 dark:text-emerald-400'
-                      : 'text-amber-700 dark:text-amber-400'
+                    r.isComplete ? 'text-emerald-800' : 'text-amber-700'
                   }`}
                 >
                   {r.surahTotal}/114 سورة

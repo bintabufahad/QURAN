@@ -8,7 +8,7 @@ import {
   getCoverageSummary,
 } from './server/quranData.ts';
 import { getRecitersCatalog, getSurahAyahTimings } from './server/recitersData.ts';
-import { getSadiTafsir } from './server/tafsirData.ts';
+import { getSadiTafsir, getSadiTafsirEnglish } from './server/tafsirData.ts';
 
 dotenv.config();
 
@@ -87,7 +87,7 @@ async function startServer() {
 
     try {
       if (!mushafPageCache.has(page)) {
-        const url = `https://api.quran.com/api/v4/verses/by_page/${page}?words=true&word_fields=code_v2,v2_page,text_uthmani,text_uthmani_tajweed,line_number,page_number,location&translations=131&translation_fields=text,resource_name&per_page=50`;
+        const url = `https://api.quran.com/api/v4/verses/by_page/${page}?words=true&word_fields=code_v2,v2_page,text_uthmani,text_uthmani_tajweed,line_number,page_number,location&translations=20,203&translation_fields=text,resource_id&per_page=50`;
         const data = await fetchQuranComJson(url);
         mushafPageCache.set(page, data);
       }
@@ -135,7 +135,7 @@ async function startServer() {
         let page = 1;
         let totalPages = 1;
         while (page <= totalPages) {
-          const url = `https://api.quran.com/api/v4/verses/by_chapter/${surah}?words=true&word_fields=code_v2,v2_page,text_uthmani,text_uthmani_tajweed,line_number,page_number,location&translations=131&translation_fields=text&per_page=50&page=${page}`;
+          const url = `https://api.quran.com/api/v4/verses/by_chapter/${surah}?words=true&word_fields=code_v2,v2_page,text_uthmani,text_uthmani_tajweed,line_number,page_number,location&translations=20,203&translation_fields=text,resource_id&per_page=50&page=${page}`;
           const data = await fetchQuranComJson(url);
           if (Array.isArray(data.verses)) {
             allVerses.push(...data.verses);
@@ -163,32 +163,52 @@ async function startServer() {
       const [ling, quranVerseRes] = await Promise.all([
         getAyahLinguistics(surah, ayah),
         fetchQuranComJson(
-          `https://api.quran.com/api/v4/verses/by_key/${surah}:${ayah}?words=true&word_fields=text_uthmani,text_uthmani_tajweed,location&translations=131&translation_fields=text`
+          `https://api.quran.com/api/v4/verses/by_key/${surah}:${ayah}?words=true&word_fields=text_uthmani,text_uthmani_tajweed,location&translations=20,203&translation_fields=text,resource_id`
         ).catch(() => null),
       ]);
 
       const verseData = quranVerseRes?.verse || null;
+      const rawTranslations: Array<{ resource_id: number; text: string }> =
+        verseData?.translations || [];
+      const cleanTransHtml = (raw: string) =>
+        raw
+          .replace(/<sup[^>]*>(\d+)<\/sup>/gi, ' [$1]')
+          .replace(/<[^>]+>/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+      const sahihRaw = rawTranslations.find((t) => t.resource_id === 20)?.text || '';
+      const khanRaw = rawTranslations.find((t) => t.resource_id === 203)?.text || '';
+      const sahihTranslation = cleanTransHtml(sahihRaw);
+      const muhsinKhanTranslation = cleanTransHtml(khanRaw);
       const wbwTranslations: Record<number, { translation: string; transliteration: string; audioUrl: string | null; textTajweed: string }> = {};
       if (verseData?.words) {
+        let spokenWordPos = 0;
+        const sPad = String(surah).padStart(3, '0');
+        const aPad = String(ayah).padStart(3, '0');
         for (const w of verseData.words) {
           if (w.char_type_name === 'word') {
-            wbwTranslations[w.position] = {
+            spokenWordPos++;
+            const pPad = String(spokenWordPos).padStart(3, '0');
+            wbwTranslations[spokenWordPos] = {
               translation: w.translation?.text || '',
               transliteration: w.transliteration?.text || '',
-              audioUrl: w.audio_url ? `https://audio.qurancdn.com/${w.audio_url}` : null,
+              audioUrl: `https://audio.qurancdn.com/wbw/${sPad}_${aPad}_${pPad}.mp3`,
               textTajweed: w.text_uthmani_tajweed || w.text_uthmani || '',
             };
           }
         }
       }
 
-      const enrichedWords = ling.words.map((w) => ({
-        ...w,
-        wbwTranslation: wbwTranslations[w.wordIndex]?.translation || '',
-        transliteration: wbwTranslations[w.wordIndex]?.transliteration || '',
-        wordAudioUrl: wbwTranslations[w.wordIndex]?.audioUrl || null,
-        textTajweed: wbwTranslations[w.wordIndex]?.textTajweed || w.arabicFull,
-      }));
+      const enrichedWords = ling.words.map((w, idx) => {
+        const entry = wbwTranslations[w.wordIndex] || wbwTranslations[idx + 1];
+        return {
+          ...w,
+          wbwTranslation: entry?.translation || '',
+          transliteration: entry?.transliteration || '',
+          wordAudioUrl: entry?.audioUrl || null,
+          textTajweed: entry?.textTajweed || w.arabicFull,
+        };
+      });
 
       // Enrich graph word nodes with phonetic + WBW translation for corpus.quran.com header rows
       const enrichedGraphs = ling.graphs.map((g) => ({
@@ -219,7 +239,9 @@ async function startServer() {
         ...ling,
         graphs: enrichedGraphs,
         verseTextUthmani: verseData?.text_uthmani || enrichedWords.map((w) => w.arabicFull).join(' '),
-        verseTranslation: verseData?.translations?.[0]?.text || '',
+        verseTranslation: sahihTranslation || muhsinKhanTranslation || '',
+        sahihTranslation,
+        muhsinKhanTranslation,
         words: enrichedWords,
       });
     } catch (err: any) {
@@ -248,6 +270,21 @@ async function startServer() {
       res.json(tafsir);
     } catch (err: any) {
       res.status(502).json({ error: err?.message || "Failed to load Tafsir as-Sa'di" });
+    }
+  });
+
+  app.get('/api/tafsir/english/:surah/:ayah', async (req, res) => {
+    const surah = Number(req.params.surah);
+    const ayah = Number(req.params.ayah);
+    if (!Number.isInteger(surah) || surah < 1 || surah > 114 || !Number.isInteger(ayah) || ayah < 1) {
+      res.status(400).json({ error: 'Invalid surah or ayah coordinate' });
+      return;
+    }
+    try {
+      const tafsirEn = await getSadiTafsirEnglish(surah, ayah);
+      res.json(tafsirEn);
+    } catch (err: any) {
+      res.status(502).json({ error: err?.message || 'Failed to load English Tafsir' });
     }
   });
 

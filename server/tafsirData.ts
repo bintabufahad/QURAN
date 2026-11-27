@@ -132,3 +132,143 @@ export async function getSadiTafsir(surah: number, ayah: number): Promise<Tafsir
 
   return result;
 }
+
+export interface TafsirSadiEnglishResult {
+  ayahKey: string;
+  surah: number;
+  ayah: number;
+  ayahText: string;
+  tafsirText: string;
+  bookTitle: string;
+  author: string;
+  translator: string;
+}
+
+const enMemCache = new Map<string, TafsirSadiEnglishResult>();
+const EN_CACHE_DIR = path.resolve(process.cwd(), '.cache', 'tafsir-saadi-en');
+
+async function translateParagraphToEnglish(arText: string): Promise<string> {
+  if (!arText.trim()) return '';
+  const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=ar&tl=en&dt=t&q=${encodeURIComponent(
+    arText.slice(0, 1800)
+  )}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Translation HTTP ${res.status}`);
+  const data = (await res.json()) as Array<Array<[string, string]>>;
+  if (!Array.isArray(data?.[0])) throw new Error('Invalid translation response');
+  return data[0]
+    .map((seg) => seg[0] || '')
+    .join('')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export async function getSadiTafsirEnglish(
+  surah: number,
+  ayah: number
+): Promise<TafsirSadiEnglishResult> {
+  const ayahKey = `${surah}:${ayah}`;
+  const cached = enMemCache.get(ayahKey);
+  if (cached) return cached;
+
+  if (!fs.existsSync(EN_CACHE_DIR)) {
+    fs.mkdirSync(EN_CACHE_DIR, { recursive: true });
+  }
+  const cacheFile = path.join(EN_CACHE_DIR, `${surah}-${ayah}.json`);
+  if (fs.existsSync(cacheFile)) {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(cacheFile, 'utf-8')) as TafsirSadiEnglishResult;
+      if (parsed && parsed.tafsirText) {
+        enMemCache.set(ayahKey, parsed);
+        return parsed;
+      }
+    } catch {
+      // Refetch if corrupted
+    }
+  }
+
+  const arabicTafsir = await getSadiTafsir(surah, ayah);
+  let englishText = '';
+
+  // Split into clean paragraphs under 1600 chars each and translate faithfully
+  const rawParagraphs = arabicTafsir.tafsirText
+    .split(/\n+/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  try {
+    if (process.env.GEMINI_API_KEY) {
+      const { GoogleGenAI } = await import('@google/genai');
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const resp = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: `Translate the following authentic Arabic Tafsir as-Sa'di (Tayseer al-Kareem ar-Rahmaan) commentary for Quran ${ayahKey} faithfully and clearly into scholarly English (in the clear, direct style of Nasiruddin al-Khattab / IIPH). Return only the English translation without extra preamble:\n\n${arabicTafsir.tafsirText}`,
+      });
+      if (resp.text && resp.text.trim()) {
+        englishText = resp.text.trim();
+      }
+    }
+  } catch {
+    // Fall back to paragraph translation below
+  }
+
+  if (!englishText) {
+    try {
+      const chunks: string[] = [];
+      for (const p of rawParagraphs) {
+        if (p.length <= 1600) {
+          chunks.push(p);
+        } else {
+          // Split long paragraph on Arabic punctuation/spaces
+          let rest = p;
+          while (rest.length > 1600) {
+            let cut = rest.lastIndexOf('،', 1600);
+            if (cut < 400) cut = rest.lastIndexOf(' ', 1600);
+            if (cut < 200) cut = 1600;
+            chunks.push(rest.slice(0, cut + 1).trim());
+            rest = rest.slice(cut + 1).trim();
+          }
+          if (rest) chunks.push(rest);
+        }
+      }
+      const translatedChunks = await Promise.all(chunks.map((c) => translateParagraphToEnglish(c)));
+      englishText = translatedChunks.filter(Boolean).join('\n\n');
+    } catch {
+      // Fallback to Quran.com English Tafsir (Ibn Kathir #169) if translation endpoint unreachable
+      try {
+        const r2 = await fetch(`https://api.quran.com/api/v4/tafsirs/169/by_ayah/${ayahKey}`);
+        if (r2.ok) {
+          const d2 = (await r2.json()) as { tafsir?: { text?: string } };
+          if (d2?.tafsir?.text) {
+            englishText = cleanQuranComHtml(d2.tafsir.text);
+          }
+        }
+      } catch {
+        englishText = '';
+      }
+    }
+  }
+
+  const result: TafsirSadiEnglishResult = {
+    ayahKey,
+    surah,
+    ayah,
+    ayahText: arabicTafsir.ayahText,
+    tafsirText: englishText || 'English translation of Tafsir as-Sa\'di could not be loaded for this ayah.',
+    bookTitle: "Taysīr al-Karīm ar-Raḥmān (Tafsīr as-Sa'dī)",
+    author: "Shaykh 'Abdur-Raḥmān Nāṣir as-Sa'dī",
+    translator: 'English Translation of Tafsir as-Sa\'di',
+  };
+
+  if (englishText) {
+    enMemCache.set(ayahKey, result);
+    try {
+      fs.writeFileSync(cacheFile, JSON.stringify(result, null, 2), 'utf-8');
+    } catch {
+      // Ignore write error
+    }
+  }
+
+  return result;
+}
+

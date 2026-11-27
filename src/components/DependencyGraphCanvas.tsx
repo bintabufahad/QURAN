@@ -467,7 +467,7 @@ export const DependencyGraphCanvas: React.FC<DependencyGraphCanvasProps> = ({
 
   if (!graph || !layout) {
     return (
-      <div className="p-8 text-center text-sm text-stone-500 dark:text-stone-400">
+      <div className="p-8 text-center text-sm text-stone-600 bg-[#FCF9F0]">
         <div className="font-semibold">لا تتوفر بيانات إضافية لهذه الآية ({ayahKey})</div>
         <div className="text-[11px] mt-0.5">
           No dependency graph data available for Ayah {ayahKey}.
@@ -483,114 +483,106 @@ export const DependencyGraphCanvas: React.FC<DependencyGraphCanvasProps> = ({
   const activeNode = hoveredNodeIdx !== null ? graph.nodes[hoveredNodeIdx] : null;
 
   return (
-    <div className="flex flex-col border border-stone-200 dark:border-stone-800 rounded-xl bg-white dark:bg-[#141A21] overflow-hidden">
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-stone-200 dark:border-stone-800 bg-stone-50/70 dark:bg-[#11161C]">
-        <div className="flex items-center gap-3 min-w-0">
+    <div className="h-full w-full min-w-0 flex flex-col border border-[#B6CDA2]/60 rounded-xl bg-[#FCF9F0] overflow-hidden">
+      {/* Fixed-Height Single-Line Toolbar */}
+      <div className="h-[34px] shrink-0 flex items-center justify-between gap-2 px-2.5 border-b border-[#B6CDA2]/40 bg-[#F4F0E4] overflow-hidden">
+        <div className="flex items-center gap-2 min-w-0 overflow-hidden">
           {effectiveSource === 'qac-gold-treebank' ? (
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-800 dark:text-emerald-400">
-              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-              <span>
-                <span className="font-semibold">مدونة إعراب القرآن (QAC v2.0)</span>
-                <span className="block text-[10px] text-emerald-700/80 dark:text-emerald-400/80">
-                  Quranic Arabic Corpus Gold Treebank
-                </span>
-              </span>
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-900 truncate">
+              <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-700" />
+              <span className="font-semibold truncate">QAC v2.0 Gold Treebank</span>
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-sky-800 dark:text-sky-400">
-              <Database className="w-3.5 h-3.5 shrink-0" />
-              <span>
-                <span className="font-semibold">شجرة الإعراب الموسعة (نور بيان EQTB)</span>
-                <span className="block text-[10px] text-sky-700/80 dark:text-sky-400/80">
-                  Extended Quranic Treebank (NoorBayan EQTB)
-                </span>
-              </span>
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-sky-900 truncate">
+              <Database className="w-3.5 h-3.5 shrink-0 text-sky-700" />
+              <span className="font-semibold truncate">NoorBayan EQTB</span>
             </span>
           )}
-          <span aria-hidden="true" className="text-stone-300 dark:text-stone-700">
+          <span aria-hidden="true" className="text-stone-400 shrink-0">
             ·
           </span>
-          <span className="text-xs font-mono-tabular text-stone-500 dark:text-stone-400 whitespace-nowrap">
-            {layout.wordGroups.length} كلمات · {layout.edgeLayouts.length} علاقات
+          <span className="text-[11px] font-mono-tabular text-stone-600 whitespace-nowrap shrink-0">
+            {layout.wordGroups.length} words · {layout.edgeLayouts.length} arcs
           </span>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          {graphs.length > 1 && (
-            <div className="flex items-center gap-1 bg-stone-200/70 dark:bg-stone-800 p-0.5 rounded-lg mr-1">
-              {graphs.map((g, idx) => (
-                <button
-                  key={g.graphNumber}
-                  type="button"
-                  onClick={() => setActiveGraphIdx(idx)}
-                  className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 ${
-                    safeIdx === idx
-                      ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100 shadow-xs'
-                      : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200'
-                  }`}
-                >
-                  جملة {idx + 1}
-                </button>
-              ))}
-            </div>
-          )}
-
+        <div className="flex items-center gap-1 shrink-0">
           <button
             type="button"
             onClick={() => setZoom((z) => Math.max(0.55, Number((z - 0.15).toFixed(2))))}
             aria-label="تصغير الرسم / Zoom out"
-            className="p-1.5 rounded-lg border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+            className="p-1 rounded border border-[#B6CDA2] bg-white text-stone-700 hover:bg-[#B6CDA2]/20 transition-colors"
           >
-            <ZoomOut className="w-4 h-4" />
+            <ZoomOut className="w-3 h-3" />
           </button>
-          <span className="text-xs font-mono-tabular w-11 text-center text-stone-600 dark:text-stone-300">
+          <span className="text-[11px] font-mono-tabular w-9 text-center text-stone-700">
             {Math.round(zoom * 100)}%
           </span>
           <button
             type="button"
             onClick={() => setZoom((z) => Math.min(1.6, Number((z + 0.15).toFixed(2))))}
             aria-label="تكبير الرسم / Zoom in"
-            className="p-1.5 rounded-lg border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+            className="p-1 rounded border border-[#B6CDA2] bg-white text-stone-700 hover:bg-[#B6CDA2]/20 transition-colors"
           >
-            <ZoomIn className="w-4 h-4" />
+            <ZoomIn className="w-3 h-3" />
           </button>
           <button
             type="button"
             onClick={() => setZoom(1)}
             aria-label="إعادة الحجم / Reset zoom"
-            className="p-1.5 rounded-lg border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+            className="p-1 rounded border border-[#B6CDA2] bg-white text-stone-700 hover:bg-[#B6CDA2]/20 transition-colors"
           >
-            <RotateCcw className="w-4 h-4" />
+            <RotateCcw className="w-3 h-3" />
           </button>
           <button
             type="button"
             onClick={handleExportSvg}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors whitespace-nowrap shrink-0"
+            className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium rounded border border-[#B6CDA2] bg-white text-stone-800 hover:bg-[#B6CDA2]/20 transition-colors whitespace-nowrap shrink-0"
           >
-            <Download className="w-3.5 h-3.5" />
-            <span>حفظ SVG</span>
+            <Download className="w-3 h-3" />
+            <span>SVG</span>
           </button>
         </div>
       </div>
 
-      {/* Exact corpus.quran.com Dependency Graph SVG Canvas */}
-      <div className="w-full overflow-x-auto custom-scrollbar bg-[#FFFFFF] dark:bg-[#0F1419]">
+      {/* Fixed-Height Graph Switcher Bar (Always 32px tall; horizontal scroll for many graphs) */}
+      <div className="h-[32px] shrink-0 flex items-center gap-1.5 px-2.5 border-b border-[#B6CDA2]/30 bg-[#FAF6EB] overflow-x-auto custom-scrollbar whitespace-nowrap">
+        <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider shrink-0 mr-1">
+          Graphs ({graphs.length}):
+        </span>
+        {graphs.map((g, idx) => (
+          <button
+            key={g.graphNumber}
+            type="button"
+            onClick={() => setActiveGraphIdx(idx)}
+            className={`px-2 py-0.5 text-[11px] font-semibold rounded-md transition-colors whitespace-nowrap shrink-0 ${
+              safeIdx === idx
+                ? 'bg-[#B6CDA2] text-black shadow-2xs'
+                : 'bg-white text-stone-700 border border-[#B6CDA2]/40 hover:bg-[#B6CDA2]/20'
+            }`}
+          >
+            Graph {idx + 1}
+          </button>
+        ))}
+      </div>
+
+      {/* Exact corpus.quran.com Dependency Graph SVG Canvas (Scrollable X & Y inside fixed box) */}
+      <div className="flex-1 min-h-0 w-full overflow-x-auto overflow-y-auto custom-scrollbar bg-[#FCF9F0]">
         <div
           style={{
-            width: `${layout.totalWidth * zoom}px`,
+            width: `${Math.max(1, layout.totalWidth * zoom)}px`,
             minWidth: '100%',
             display: 'flex',
             justifyContent: 'center',
           }}
-          className="py-5 px-3"
+          className="py-2.5 px-3"
         >
           <svg
             ref={svgRef}
             width={layout.totalWidth * zoom}
             height={layout.totalHeight * zoom}
             viewBox={`0 0 ${layout.totalWidth} ${layout.totalHeight}`}
-            className="select-none overflow-visible"
+            className="select-none overflow-visible shrink-0"
             role="img"
             aria-label={`مخطط الإعراب النحوي للآية ${ayahKey}`}
           >
@@ -648,7 +640,7 @@ export const DependencyGraphCanvas: React.FC<DependencyGraphCanvasProps> = ({
                       y={layout.locationY}
                       textAnchor="middle"
                       fontSize={11}
-                      className="fill-stone-500 dark:fill-stone-400 font-sans"
+                      className="fill-stone-600 font-sans"
                     >
                       {locStr}
                     </text>
@@ -675,7 +667,7 @@ export const DependencyGraphCanvas: React.FC<DependencyGraphCanvasProps> = ({
                       y={layout.translationY}
                       textAnchor="middle"
                       fontSize={11}
-                      className="fill-stone-900 dark:fill-stone-200 font-sans"
+                      className="fill-stone-900 font-sans"
                     >
                       {rep.translation.length > 16
                         ? `${rep.translation.slice(0, 15)}…`
@@ -691,7 +683,7 @@ export const DependencyGraphCanvas: React.FC<DependencyGraphCanvasProps> = ({
                     fontSize={isElided ? 18 : 28}
                     className={
                       isElided
-                        ? 'fill-stone-400 dark:fill-stone-500 font-sans'
+                        ? 'fill-stone-500 font-sans'
                         : 'font-corpus-ar'
                     }
                     direction="rtl"
@@ -866,7 +858,7 @@ export const DependencyGraphCanvas: React.FC<DependencyGraphCanvasProps> = ({
                     strokeWidth={3.5}
                     strokeLinejoin="round"
                     aria-hidden="true"
-                    className="font-corpus-label dark:stroke-[#0F1419]"
+                    className="font-corpus-label stroke-[#FCF9F0]"
                   >
                     {edge.arabicLabel}
                   </text>
@@ -888,41 +880,38 @@ export const DependencyGraphCanvas: React.FC<DependencyGraphCanvasProps> = ({
         </div>
       </div>
 
-      {/* Interactive Bilingual Inspection Footer */}
-      <div className="px-4 py-2.5 border-t border-stone-200 dark:border-stone-800 bg-stone-50/80 dark:bg-[#11161C] flex items-center justify-between gap-4 text-xs">
+      {/* Fixed-Height Bilingual Inspection Footer */}
+      <div className="h-[30px] shrink-0 px-3 border-t border-[#B6CDA2]/40 bg-[#F4F0E4] flex items-center gap-2 text-xs overflow-hidden whitespace-nowrap">
         {activeEdge ? (
-          <div className="flex flex-wrap items-center gap-2 text-stone-800 dark:text-stone-200">
+          <div className="flex items-center gap-2 text-stone-900 min-w-0 truncate">
             <span
               className="w-2.5 h-2.5 rounded-sm shrink-0"
               style={{ backgroundColor: activeEdge.color }}
             />
-            <span className="font-semibold text-sm">{activeEdge.edge.arabicLabel}</span>
-            <span className="text-[11px] text-stone-500 dark:text-stone-400">
+            <span className="font-semibold shrink-0">{activeEdge.edge.arabicLabel}</span>
+            <span className="text-[11px] text-stone-600 truncate">
               ({activeEdge.edge.englishLabel} — {activeEdge.edge.description})
             </span>
           </div>
         ) : activeNode ? (
-          <div className="flex flex-wrap items-center gap-2 text-stone-800 dark:text-stone-200">
-            <Info className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400 shrink-0" />
-            <span className="font-semibold">
+          <div className="flex items-center gap-2 text-stone-900 min-w-0 truncate">
+            <Info className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+            <span className="font-semibold shrink-0">
               {activeNode.kind === 'phrase'
                 ? `${activeNode.phraseType} — ${activeNode.phraseArabic || ARABIC_PHRASE_FALLBACK[activeNode.phraseType || '']}`
                 : `${activeNode.arabic} — ${activeNode.posArabic || ARABIC_POS_FALLBACK[activeNode.pos || ''] || activeNode.pos}`}
             </span>
-            <span className="text-[11px] text-stone-500 dark:text-stone-400">
+            <span className="text-[11px] text-stone-600 truncate">
               {activeNode.kind === 'phrase'
                 ? `(${activeNode.phraseLabel})`
-                : `(${activeNode.pos}) · انظر جدول الإعراب بالأسفل`}
+                : `(${activeNode.pos})`}
             </span>
           </div>
         ) : (
-          <div className="flex flex-wrap items-center gap-2 text-stone-600 dark:text-stone-400">
-            <Info className="w-3.5 h-3.5 shrink-0" />
-            <span>
-              مرر الفأرة على أي قوس لمعرفة العلاقة الإعرابية أو اضغط على الكلمة لتحديدها في الجدول
-            </span>
-            <span className="text-[10px] text-stone-400 dark:text-stone-500">
-              (Hover any dependency arc or click a word to highlight its breakdown row below)
+          <div className="flex items-center gap-2 text-stone-700 min-w-0 truncate">
+            <Info className="w-3.5 h-3.5 shrink-0 text-emerald-800" />
+            <span className="truncate">
+              Hover an arc or click a word to inspect syntax relations · Graph {safeIdx + 1} of {graphs.length}
             </span>
           </div>
         )}

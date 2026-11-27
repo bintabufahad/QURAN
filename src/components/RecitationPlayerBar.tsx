@@ -400,14 +400,14 @@ export const RecitationPlayerBar: React.FC<RecitationPlayerBarProps> = ({
   const activeVerseObj = verses.find((v) => v.verse_number === currentAyah);
 
   return (
-    <div className="fixed bottom-0 inset-x-0 z-40 border-t border-stone-200 dark:border-stone-800 bg-white/95 dark:bg-[#11161C]/95 backdrop-blur-md shadow-lg">
+    <div className="fixed bottom-0 inset-x-0 z-40 border-t-2 border-[#B6CDA2] bg-[#FCF9F0]/95 backdrop-blur-md shadow-xl">
       <audio ref={audioRef} preload="auto" />
       <audio ref={preloadAudioRef} preload="auto" className="hidden" />
 
       {/* Thin Continuous Progress Line */}
-      <div className="h-1 w-full bg-stone-200 dark:bg-stone-800">
+      <div className="h-1 w-full bg-[#B6CDA2]/30">
         <div
-          className="h-full bg-emerald-700 transition-all duration-150"
+          className="h-full bg-emerald-800 transition-all duration-150"
           style={{ width: `${progressPct}%` }}
         />
       </div>
@@ -424,29 +424,29 @@ export const RecitationPlayerBar: React.FC<RecitationPlayerBarProps> = ({
           </div>
 
           <div className="min-w-0">
-            <div dir="rtl" className="flex items-center gap-2 text-xs font-semibold text-stone-900 dark:text-stone-100 truncate">
+            <div dir="rtl" className="flex items-center gap-2 text-xs font-semibold text-stone-900 truncate">
               <span className="truncate">
                 {resolved?.effectiveReciterArabicName ||
                   resolved?.effectiveReciterName ||
                   'جارٍ تحميل التلاوة…'}
               </span>
               <span aria-hidden="true" className="text-stone-400">·</span>
-              <span className="font-mono-tabular text-emerald-800 dark:text-emerald-400 shrink-0">
+              <span className="font-mono-tabular text-emerald-800 shrink-0">
                 سورة {activeChapter?.name_arabic || resolved?.surah} ({resolved?.surah}:
                 {currentAyah})
               </span>
-              <span className="text-[10px] font-normal text-stone-400 hidden sm:inline">
+              <span className="text-[10px] font-normal text-stone-500 hidden sm:inline">
                 (النطاق {resolved?.startAyah}–{resolved?.endAyah} · مقطع {segmentIdx + 1}/
                 {config.segments.length})
               </span>
             </div>
 
             {errorMsg ? (
-              <div className="text-[11px] text-red-600 dark:text-red-400 truncate">
+              <div className="text-[11px] text-red-700 truncate">
                 {errorMsg}
               </div>
             ) : resolved?.isFallbackApplied ? (
-              <div dir="rtl" className="flex items-center gap-1 text-[11px] text-amber-700 dark:text-amber-400 truncate">
+              <div dir="rtl" className="flex items-center gap-1 text-[11px] text-amber-800 truncate">
                 <AlertTriangle className="w-3 h-3 shrink-0" />
                 <span>
                   البديل التلقائي نشط ({resolved.originalReciterArabicName || resolved.originalReciterName} غير متوفر لسورة {activeChapter?.name_arabic || resolved.surah})
@@ -455,7 +455,7 @@ export const RecitationPlayerBar: React.FC<RecitationPlayerBarProps> = ({
             ) : activeVerseObj ? (
               <div
                 dir="rtl"
-                className="font-quran text-sm text-stone-600 dark:text-stone-400 truncate max-w-md"
+                className="font-quran text-sm text-stone-700 truncate max-w-md"
               >
                 {activeVerseObj.words
                   .filter((w) => w.char_type_name === 'word')
@@ -464,7 +464,7 @@ export const RecitationPlayerBar: React.FC<RecitationPlayerBarProps> = ({
                   .join(' ')}
               </div>
             ) : (
-              <div className="text-[10px] text-stone-500 dark:text-stone-400 truncate">
+              <div className="text-[10px] text-stone-600 truncate">
                 {resolved?.effectiveReciterName || config.name}
               </div>
             )}
@@ -477,7 +477,7 @@ export const RecitationPlayerBar: React.FC<RecitationPlayerBarProps> = ({
             type="button"
             onClick={() => jumpToAyah(currentAyah - 1)}
             aria-label="الآية السابقة · Previous Ayah"
-            className="p-2 rounded-lg text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+            className="p-2 rounded-lg text-stone-700 hover:bg-[#B6CDA2]/25 transition-colors"
           >
             <SkipBack className="w-4 h-4" />
           </button>
@@ -495,7 +495,7 @@ export const RecitationPlayerBar: React.FC<RecitationPlayerBarProps> = ({
             type="button"
             onClick={() => jumpToAyah(currentAyah + 1)}
             aria-label="الآية التالية · Next Ayah"
-            className="p-2 rounded-lg text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+            className="p-2 rounded-lg text-stone-700 hover:bg-[#B6CDA2]/25 transition-colors"
           >
             <SkipForward className="w-4 h-4" />
           </button>
@@ -511,7 +511,7 @@ export const RecitationPlayerBar: React.FC<RecitationPlayerBarProps> = ({
               onClose();
             }}
             aria-label="إغلاق المشغل · Close player"
-            className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+            className="p-1.5 rounded-lg text-stone-500 hover:text-stone-900 hover:bg-[#B6CDA2]/25 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
