@@ -137,10 +137,14 @@ export async function getRecitersCatalog(): Promise<ReciterProfile[]> {
   }
 
   const [recRes, readsRes] = await Promise.all([
-    fetch('https://www.mp3quran.net/api/v3/reciters?language=en').then((r) => r.json()) as Promise<{
+    fetch('https://www.mp3quran.net/api/v3/reciters?language=en', {
+      signal: AbortSignal.timeout(12000),
+    }).then((r) => r.json()) as Promise<{
       reciters: Mp3QuranReciter[];
     }>,
-    fetch('https://www.mp3quran.net/api/v3/ayat_timing/reads').then((r) => r.json()) as Promise<TimingReadItem[]>,
+    fetch('https://www.mp3quran.net/api/v3/ayat_timing/reads', {
+      signal: AbortSignal.timeout(12000),
+    }).then((r) => r.json()) as Promise<TimingReadItem[]>,
   ]);
 
   const timingByMoshafId = new Map<number, TimingReadItem>();
@@ -237,7 +241,7 @@ export async function getSurahAyahTimings(readId: number, surah: number): Promis
   if (timingCache.has(key)) return timingCache.get(key)!;
 
   const url = `https://www.mp3quran.net/api/v3/ayat_timing?surah=${surah}&read=${readId}`;
-  const res = await fetch(url);
+  const res = await fetch(url, { signal: AbortSignal.timeout(12000) });
   if (!res.ok) return [];
 
   const data = (await res.json()) as Array<{

@@ -50,7 +50,7 @@ function savePlaylists(list: unknown[]): void {
 }
 
 async function fetchQuranComJson(url: string): Promise<any> {
-  const res = await fetch(url);
+  const res = await fetch(url, { signal: AbortSignal.timeout(12000) });
   if (!res.ok) {
     throw new Error(`Quran.com API error ${res.status}: ${url}`);
   }
@@ -106,7 +106,8 @@ async function startServer() {
         buf = fs.readFileSync(fontPath);
       } else {
         const fontRes = await fetch(
-          'https://huggingface.co/datasets/MohamadHajjRabee/quran-qcf4/resolve/main/fonts-woff2/QCF4_QBSML.woff2'
+          'https://huggingface.co/datasets/MohamadHajjRabee/quran-qcf4/resolve/main/fonts-woff2/QCF4_QBSML.woff2',
+          { signal: AbortSignal.timeout(15000) }
         );
         if (!fontRes.ok) {
           throw new Error(`Failed to fetch QCF4_QBSML.woff2: ${fontRes.status}`);
@@ -359,7 +360,9 @@ async function startServer() {
   });
 
   // Vite dev middleware OR production static files
-  if (process.env.NODE_ENV !== 'production') {
+  const distPath = path.resolve(process.cwd(), 'dist');
+  const hasDist = fs.existsSync(path.join(distPath, 'index.html'));
+  if (process.env.NODE_ENV !== 'production' || !hasDist) {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -367,16 +370,19 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.resolve(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (_req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  const httpServer = app.listen(PORT, '0.0.0.0', () => {
     console.log(`Bayan Al-Mushaf server running on http://localhost:${PORT}`);
   });
+  // Render reverse proxy requires keepAliveTimeout & headersTimeout >= 120s to prevent 502 resets
+  httpServer.keepAliveTimeout = 120000;
+  httpServer.headersTimeout = 120000;
+  httpServer.requestTimeout = 120000;
 }
 
 startServer().catch((err) => {

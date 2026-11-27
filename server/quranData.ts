@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import readline from 'readline';
 import { createExtractorFromData } from 'node-unrar-js';
 
 const CACHE_DIR = path.resolve(process.cwd(), '.cache');
@@ -212,14 +213,28 @@ export const PHRASE_INFO: Record<string, { en: string; ar: string }> = {
   SC: { en: 'Subordinate Clause', ar: 'جملة فرعية' },
 };
 
+interface CachedAyahPayload {
+  ayahKey: string;
+  surah: number;
+  ayah: number;
+  hasGoldTreebank: boolean;
+  graphSource: GraphDatasetSource;
+  words: WordMorphology[];
+  graphs: ParsedSyntaxGraph[];
+  irab: IrabEntry[];
+}
+
 interface QuranLinguisticsStore {
   ready: boolean;
   loadingPromise: Promise<void> | null;
-  morphologyByAyah: Map<string, WordMorphology[]>;
-  tokenList: Array<{ surah: number; ayah: number; wordIndex: number; location: string }>;
-  syntaxByAyah: Map<string, ParsedSyntaxGraph[]>;
-  eqtbByAyah: Map<string, ParsedSyntaxGraph[]>;
+  // Compact raw-text indices kept in memory (~19 MB total instead of ~480 MB inflated AST objects!)
+  rawMorphByAyah: Map<string, string[]>;
+  rawSyntaxByAyah: Map<string, string[]>;
+  eqtbSentenceBlocks: string[];
+  rawEqtbByAyah: Map<string, number[]>;
+  eqtbHeaderIdx: Record<string, number>;
   irabByAyah: Map<string, IrabEntry[]>;
+  ayahLruCache: Map<string, CachedAyahPayload>;
   goldSurahs: Set<number>;
   goldAyahCount: number;
   eqtbSurahs: Set<number>;
@@ -231,11 +246,13 @@ interface QuranLinguisticsStore {
 const store: QuranLinguisticsStore = {
   ready: false,
   loadingPromise: null,
-  morphologyByAyah: new Map(),
-  tokenList: [],
-  syntaxByAyah: new Map(),
-  eqtbByAyah: new Map(),
+  rawMorphByAyah: new Map(),
+  rawSyntaxByAyah: new Map(),
+  eqtbSentenceBlocks: [],
+  rawEqtbByAyah: new Map(),
+  eqtbHeaderIdx: {},
   irabByAyah: new Map(),
+  ayahLruCache: new Map(),
   goldSurahs: new Set(),
   goldAyahCount: 0,
   eqtbSurahs: new Set(),
@@ -250,31 +267,31 @@ function ensureCacheDir(): void {
   }
 }
 
-async function fetchWithCache(url: string, filename: string): Promise<string> {
+async function fetchToCacheFile(url: string, filename: string): Promise<string> {
   ensureCacheDir();
   const filePath = path.join(CACHE_DIR, filename);
   if (fs.existsSync(filePath)) {
     const stat = fs.statSync(filePath);
     if (stat.size > 10000) {
-      return fs.readFileSync(filePath, 'utf-8');
+      return filePath;
     }
   }
-  const res = await fetch(url);
+  const res = await fetch(url, { signal: AbortSignal.timeout(30000) });
   if (!res.ok) {
     throw new Error(`Failed to fetch ${url}: ${res.status}`);
   }
   const text = await res.text();
   fs.writeFileSync(filePath, text, 'utf-8');
-  return text;
+  return filePath;
 }
 
-async function fetchEqtbCsvWithCache(): Promise<string> {
+async function ensureEqtbCsvFile(): Promise<string> {
   ensureCacheDir();
   const csvPath = path.join(CACHE_DIR, 'Quranic.csv');
   if (fs.existsSync(csvPath)) {
     const stat = fs.statSync(csvPath);
     if (stat.size > 10_000_000) {
-      return fs.readFileSync(csvPath, 'utf-8');
+      return csvPath;
     }
   }
 
@@ -283,7 +300,7 @@ async function fetchEqtbCsvWithCache(): Promise<string> {
   if (fs.existsSync(rarPath) && fs.statSync(rarPath).size > 1_000_000) {
     rarBuffer = fs.readFileSync(rarPath);
   } else {
-    const res = await fetch(EQTB_RAR_URL);
+    const res = await fetch(EQTB_RAR_URL, { signal: AbortSignal.timeout(45000) });
     if (!res.ok) {
       throw new Error(`Failed to fetch EQTB archive: ${res.status}`);
     }
@@ -301,10 +318,26 @@ async function fetchEqtbCsvWithCache(): Promise<string> {
     throw new Error('Quranic.csv not found inside EQTB archive');
   }
 
-  // NoorBayan Quranic.csv is UTF-16LE encoded; convert once and cache UTF-8 for fast restarts
-  const utf8Text = Buffer.from(fileEntry.extraction).toString('utf16le');
-  fs.writeFileSync(csvPath, utf8Text, 'utf-8');
-  return utf8Text;
+  // Stream UTF-16LE -> UTF-8 in 1 MB chunks (even byte count) to avoid giant string heap spike
+  const rawBuf = Buffer.from(
+    fileEntry.extraction.buffer,
+    fileEntry.extraction.byteOffset,
+    fileEntry.extraction.byteLength
+  );
+  const tmpPath = `${csvPath}.tmp`;
+  const fd = fs.openSync(tmpPath, 'w');
+  try {
+    const chunkSize = 1024 * 1024; // multiple of 2 for UTF-16LE
+    for (let offset = 0; offset < rawBuf.length; offset += chunkSize) {
+      const end = Math.min(offset + chunkSize, rawBuf.length);
+      const utf8Chunk = rawBuf.subarray(offset, end).toString('utf16le');
+      fs.writeSync(fd, utf8Chunk, undefined, 'utf-8');
+    }
+  } finally {
+    fs.closeSync(fd);
+  }
+  fs.renameSync(tmpPath, csvPath);
+  return csvPath;
 }
 
 function parseMorphFeatures(tag: string, raw: string): {
@@ -431,7 +464,6 @@ function parseMorphFeatures(tag: string, raw: string): {
     }
   }
 
-  // Exact corpus.quran.com English description formatter
   const pgnParts = [
     person === '1' ? '1st person' : person === '2' ? '2nd person' : person === '3' ? '3rd person' : '',
     gender === 'M' ? 'masculine' : gender === 'F' ? 'feminine' : '',
@@ -519,7 +551,7 @@ function buildSuffixPronounArabic(seg: MorphSegment, prevNonDet: MorphSegment | 
     pronName = 'والكاف ضمير متصل';
   } else if (txt === 'هُ' || txt === 'هِ' || txt === 'هَا' || txt === 'هُمْ' || txt === 'هِمْ' || txt === 'هُمَا' || txt === 'هُنَّ' || txt === 'هِنَّ') {
     pronName = 'والهاء ضمير متصل';
-  } else if (txt === 'ى' || txt === 'ي' || txt === 'نِى' || seg.person === '1' && seg.number === 'S') {
+  } else if (txt === 'ى' || txt === 'ي' || txt === 'نِى' || (seg.person === '1' && seg.number === 'S')) {
     pronName = 'والياء ضمير متصل';
   } else if (txt === 'نَا' || txt === 'نَا۟') {
     pronName = 'و«نا» ضمير متصل';
@@ -552,7 +584,6 @@ function buildSuffixPronounArabic(seg: MorphSegment, prevNonDet: MorphSegment | 
 
 function finalizeWordMorphology(word: WordMorphology): void {
   const nonDet = word.segments.filter((s) => s.pos !== 'DET');
-  // Refine PRON descriptions with contextual role (possessive vs object vs subject)
   nonDet.forEach((seg, idx) => {
     if (seg.pos === 'PRON' && seg.role === 'SUFFIX') {
       const prev = idx > 0 ? nonDet[idx - 1] : undefined;
@@ -567,7 +598,7 @@ function finalizeWordMorphology(word: WordMorphology): void {
           : prev && (prev.pos === 'ACC' || prev.pos === 'P')
           ? 'object pronoun'
           : prev && prev.pos === 'V'
-          ? (seg.arabic.includes('و') || seg.arabic === 'ا' || seg.arabic.startsWith('ت') || seg.arabic === 'نَ'
+          ? (seg.arabic.includes('و') || seg.arabic === 'ا' || seg.arabic.startsWith('ت') || seg.arabic.startsWith('نَ')
               ? 'subject pronoun'
               : 'object pronoun')
           : 'personal pronoun';
@@ -575,7 +606,6 @@ function finalizeWordMorphology(word: WordMorphology): void {
     }
   });
 
-  // Build corpus.quran.com concise green Arabic syntax & morphology line
   const arParts: string[] = [];
   nonDet.forEach((seg, idx) => {
     const prev = idx > 0 ? nonDet[idx - 1] : undefined;
@@ -643,14 +673,15 @@ function finalizeWordMorphology(word: WordMorphology): void {
   word.corpusArabicLine = arParts.filter(Boolean).join(' ').replace(/\s+و/g, ' و');
 }
 
-function parseMorphologyFile(rawText: string): void {
-  const lines = rawText.split('\n');
+function parseAyahMorphologyOnDemand(ayahKey: string): WordMorphology[] {
+  const lines = store.rawMorphByAyah.get(ayahKey);
+  if (!lines || lines.length === 0) return [];
+
+  const result: WordMorphology[] = [];
   let lastWordKey = '';
   let currentWord: WordMorphology | null = null;
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line || line.startsWith('#')) continue;
+  for (const line of lines) {
     const cols = line.split('\t');
     if (cols.length < 4) continue;
 
@@ -661,7 +692,6 @@ function parseMorphologyFile(rawText: string): void {
     const ayah = Number(locParts[1]);
     const wordIndex = Number(locParts[2]);
     const segmentIndex = Number(locParts[3]);
-    const ayahKey = `${surah}:${ayah}`;
     const wordKey = `${surah}:${ayah}:${wordIndex}`;
 
     const parsed = parseMorphFeatures(tag, featStr);
@@ -693,8 +723,6 @@ function parseMorphologyFile(rawText: string): void {
       rawFeatures: featStr,
     };
 
-    store.totalMorphSegments++;
-
     if (wordKey !== lastWordKey) {
       if (currentWord) finalizeWordMorphology(currentWord);
       lastWordKey = wordKey;
@@ -710,12 +738,7 @@ function parseMorphologyFile(rawText: string): void {
         root: parsed.root,
         lemma: parsed.lemma,
       };
-      if (!store.morphologyByAyah.has(ayahKey)) {
-        store.morphologyByAyah.set(ayahKey, []);
-      }
-      store.morphologyByAyah.get(ayahKey)!.push(currentWord);
-      store.tokenList.push({ surah, ayah, wordIndex, location: wordKey });
-      store.totalMorphWords++;
+      result.push(currentWord);
     } else if (currentWord) {
       currentWord.arabicFull += arabic;
       currentWord.segments.push(seg);
@@ -728,202 +751,161 @@ function parseMorphologyFile(rawText: string): void {
     }
   }
   if (currentWord) finalizeWordMorphology(currentWord);
+  return result;
 }
 
-function parseIrabFile(rawText: string): void {
-  const lines = rawText.split('\n');
-  let cursor = 0;
+function parseSyntaxBlockOnDemand(
+  blockText: string,
+  graphNumber: number,
+  primaryAyahKey: string,
+  morphLookupCache: Map<string, WordMorphology[]>
+): ParsedSyntaxGraph {
+  const lines = blockText
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0 && !l.startsWith('--'));
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (!line.trim()) continue;
-    const tabIdx = line.indexOf('\t');
-    if (tabIdx === -1) continue;
-    const spanCount = parseInt(line.slice(0, tabIdx), 10);
-    const irabText = line.slice(tabIdx + 1).replace(/\\n/g, '\n').trim();
-    if (isNaN(spanCount) || spanCount <= 0) continue;
+  const nodes: SyntaxNode[] = [];
+  const edges: SyntaxEdge[] = [];
+  let wordGroupSeq = 0;
 
-    const startToken = store.tokenList[cursor];
-    const endToken = store.tokenList[Math.min(cursor + spanCount - 1, store.tokenList.length - 1)];
-    if (startToken && endToken) {
-      const ayahKey = `${startToken.surah}:${startToken.ayah}`;
-      if (!store.irabByAyah.has(ayahKey)) {
-        store.irabByAyah.set(ayahKey, []);
-      }
-      store.irabByAyah.get(ayahKey)!.push({
-        wordStart: startToken.wordIndex,
-        wordEnd:
-          endToken.surah === startToken.surah && endToken.ayah === startToken.ayah
-            ? endToken.wordIndex
-            : startToken.wordIndex,
-        text: irabText,
-      });
+  const getMorphForAyah = (key: string): WordMorphology[] => {
+    let m = morphLookupCache.get(key);
+    if (!m) {
+      m = parseAyahMorphologyOnDemand(key);
+      morphLookupCache.set(key, m);
     }
-    cursor += spanCount;
-  }
-}
+    return m;
+  };
 
-function parseSyntaxFile(rawText: string): void {
-  const blocks = rawText.split(/\r?\ngo\r?\n/);
-  const ayahGraphCounts = new Map<string, number>();
+  for (const line of lines) {
+    const eqIdx = line.indexOf(' = ');
+    if (eqIdx >= 0) {
+      const namesRaw = line.slice(0, eqIdx).split(',').map((s) => s.trim());
+      const def = line.slice(eqIdx + 3).trim();
+      const parenIdx = def.indexOf('(');
+      if (parenIdx === -1) continue;
+      const tag = def.slice(0, parenIdx).trim();
+      const value = def.slice(parenIdx + 1, def.length - 1).trim();
 
-  for (const block of blocks) {
-    const lines = block
-      .split(/\r?\n/)
-      .map((l) => l.trim())
-      .filter((l) => l.length > 0 && !l.startsWith('--'));
-    if (lines.length === 0) continue;
+      if (tag === 'word' || tag === 'reference') {
+        const locParts = value.split(':');
+        const surah = Number(locParts[0]);
+        const ayah = Number(locParts[1]);
+        const wordIdx = Number(locParts[2]);
+        const ayahKey = `${surah}:${ayah}`;
+        const morphWords = getMorphForAyah(ayahKey);
+        const wordMorph = morphWords.find((w) => w.wordIndex === wordIdx);
 
-    const nodes: SyntaxNode[] = [];
-    const edges: SyntaxEdge[] = [];
-    let primaryAyahKey = '';
-    let wordGroupSeq = 0;
+        const syntaxSegments = wordMorph?.segments.filter((s) => s.pos !== 'DET') || [];
+        const matchedSegments =
+          syntaxSegments.length === namesRaw.length
+            ? syntaxSegments
+            : wordMorph?.segments || [];
 
-    for (const line of lines) {
-      const eqIdx = line.indexOf(' = ');
-      if (eqIdx >= 0) {
-        const namesRaw = line.slice(0, eqIdx).split(',').map((s) => s.trim());
-        const def = line.slice(eqIdx + 3).trim();
-        const parenIdx = def.indexOf('(');
-        if (parenIdx === -1) continue;
-        const tag = def.slice(0, parenIdx).trim();
-        const value = def.slice(parenIdx + 1, def.length - 1).trim();
+        wordGroupSeq++;
+        const wordGroupId = `${tag}-${value}-${wordGroupSeq}`;
+        const displaySegments = (wordMorph?.segments || []).map((s) => ({
+          arabic: s.arabic,
+          pos: s.pos,
+          posArabic: s.posArabic,
+          isDet: s.pos === 'DET',
+        }));
 
-        if (tag === 'word' || tag === 'reference') {
-          const locParts = value.split(':');
-          const surah = Number(locParts[0]);
-          const ayah = Number(locParts[1]);
-          const wordIdx = Number(locParts[2]);
-          const ayahKey = `${surah}:${ayah}`;
-          if (tag === 'word' && !primaryAyahKey) {
-            primaryAyahKey = ayahKey;
-          }
-          const morphWords = store.morphologyByAyah.get(ayahKey);
-          const wordMorph = morphWords?.find((w) => w.wordIndex === wordIdx);
-
-          // In QAC syntax.txt, DET ('ال') has no standalone nodeId, so align non-DET segments 1:1
-          const syntaxSegments =
-            wordMorph?.segments.filter((s) => s.pos !== 'DET') || [];
-          const matchedSegments =
-            syntaxSegments.length === namesRaw.length
-              ? syntaxSegments
-              : wordMorph?.segments || [];
-
-          wordGroupSeq++;
-          const wordGroupId = `${tag}-${value}-${wordGroupSeq}`;
-          const displaySegments = (wordMorph?.segments || []).map((s) => ({
-            arabic: s.arabic,
-            pos: s.pos,
-            posArabic: s.posArabic,
-            isDet: s.pos === 'DET',
-          }));
-
-          namesRaw.forEach((nodeId, idx) => {
-            const seg = matchedSegments[idx] || wordMorph?.segments[idx];
-            const posCode = seg?.pos || wordMorph?.primaryPos || 'N';
-            const posMeta = POS_INFO[posCode] || { en: posCode, ar: posCode };
-            nodes.push({
-              nodeIndex: nodes.length,
-              nodeId,
-              kind: tag === 'reference' ? 'reference' : 'word',
-              location: value,
-              segmentIndex: idx,
-              arabic: seg?.arabic || wordMorph?.arabicFull || value,
-              pos: posCode,
-              posArabic: posMeta.ar,
-              fam: seg?.fam,
-              wordGroupId,
-              displaySegments: idx === 0 ? displaySegments : undefined,
-              wordStart: wordIdx,
-              wordEnd: wordIdx,
-            });
+        namesRaw.forEach((nodeId, idx) => {
+          const seg = matchedSegments[idx] || wordMorph?.segments[idx];
+          const posCode = seg?.pos || wordMorph?.primaryPos || 'N';
+          const posMeta = POS_INFO[posCode] || { en: posCode, ar: posCode };
+          nodes.push({
+            nodeIndex: nodes.length,
+            nodeId,
+            kind: tag === 'reference' ? 'reference' : 'word',
+            location: value,
+            segmentIndex: idx,
+            arabic: seg?.arabic || wordMorph?.arabicFull || value,
+            pos: posCode,
+            posArabic: posMeta.ar,
+            fam: seg?.fam,
+            wordGroupId,
+            displaySegments: idx === 0 ? displaySegments : undefined,
+            wordStart: wordIdx,
+            wordEnd: wordIdx,
           });
-        } else if (PHRASE_INFO[tag]) {
-          const dashIdx = value.indexOf(' - ');
-          if (dashIdx >= 0) {
-            const sId = value.slice(0, dashIdx).trim();
-            const eId = value.slice(dashIdx + 3).trim();
-            const sNode = parseInt(sId.slice(1), 10) - 1;
-            const eNode = parseInt(eId.slice(1), 10) - 1;
-            nodes.push({
-              nodeIndex: nodes.length,
-              nodeId: namesRaw[0],
-              kind: 'phrase',
-              phraseType: tag,
-              phraseLabel: PHRASE_INFO[tag].en,
-              phraseArabic: PHRASE_INFO[tag].ar,
-              startNode: sNode,
-              endNode: eNode,
-            });
-          }
-        } else {
-          const posMeta = POS_INFO[tag] || { en: tag, ar: tag };
-          wordGroupSeq++;
+        });
+      } else if (PHRASE_INFO[tag]) {
+        const dashIdx = value.indexOf(' - ');
+        if (dashIdx >= 0) {
+          const sId = value.slice(0, dashIdx).trim();
+          const eId = value.slice(dashIdx + 3).trim();
+          const sNode = parseInt(sId.slice(1), 10) - 1;
+          const eNode = parseInt(eId.slice(1), 10) - 1;
           nodes.push({
             nodeIndex: nodes.length,
             nodeId: namesRaw[0],
-            kind: 'elided',
-            arabic: value === '*' ? '(*)' : value,
-            pos: tag,
-            posArabic: posMeta.ar,
-            wordGroupId: `elided-${wordGroupSeq}`,
+            kind: 'phrase',
+            phraseType: tag,
+            phraseLabel: PHRASE_INFO[tag].en,
+            phraseArabic: PHRASE_INFO[tag].ar,
+            startNode: sNode,
+            endNode: eNode,
           });
         }
       } else {
-        const parenIdx = line.indexOf('(');
-        if (parenIdx === -1) continue;
-        const tag = line.slice(0, parenIdx).trim();
-        const inner = line.slice(parenIdx + 1, line.length - 1).trim();
-        const dashIdx = inner.indexOf(' - ');
-        if (dashIdx === -1) continue;
-        const fromId = inner.slice(0, dashIdx).trim();
-        const toId = inner.slice(dashIdx + 3).trim();
-        const fromNode = parseInt(fromId.slice(1), 10) - 1;
-        const toNode = parseInt(toId.slice(1), 10) - 1;
-        const rel = RELATION_INFO[tag] || { ar: tag, en: tag, desc: '' };
-
-        let arabicLabel = rel.ar;
-        if (tag === 'subjx' || tag === 'predx') {
-          const headFam = nodes[toNode]?.fam || nodes[fromNode]?.fam;
-          if (headFam === 'إِنّ') {
-            arabicLabel = tag === 'subjx' ? 'اسم «ان»' : 'خبر «ان»';
-          } else if (headFam === 'كَان') {
-            arabicLabel = tag === 'subjx' ? 'اسم «كان»' : 'خبر «كان»';
-          } else if (headFam === 'كَاد') {
-            arabicLabel = tag === 'subjx' ? 'اسم «كاد»' : 'خبر «كاد»';
-          }
-        }
-
-        edges.push({
-          fromNode,
-          toNode,
-          tag,
-          arabicLabel,
-          englishLabel: rel.en,
-          description: rel.desc,
+        const posMeta = POS_INFO[tag] || { en: tag, ar: tag };
+        wordGroupSeq++;
+        nodes.push({
+          nodeIndex: nodes.length,
+          nodeId: namesRaw[0],
+          kind: 'elided',
+          arabic: value === '*' ? '(*)' : value,
+          pos: tag,
+          posArabic: posMeta.ar,
+          wordGroupId: `elided-${wordGroupSeq}`,
         });
       }
+    } else {
+      const parenIdx = line.indexOf('(');
+      if (parenIdx === -1) continue;
+      const tag = line.slice(0, parenIdx).trim();
+      const inner = line.slice(parenIdx + 1, line.length - 1).trim();
+      const dashIdx = inner.indexOf(' - ');
+      if (dashIdx === -1) continue;
+      const fromId = inner.slice(0, dashIdx).trim();
+      const toId = inner.slice(dashIdx + 3).trim();
+      const fromNode = parseInt(fromId.slice(1), 10) - 1;
+      const toNode = parseInt(toId.slice(1), 10) - 1;
+      const rel = RELATION_INFO[tag] || { ar: tag, en: tag, desc: '' };
+
+      let arabicLabel = rel.ar;
+      if (tag === 'subjx' || tag === 'predx') {
+        const headFam = nodes[toNode]?.fam || nodes[fromNode]?.fam;
+        if (headFam === 'إِنّ') {
+          arabicLabel = tag === 'subjx' ? 'اسم «ان»' : 'خبر «ان»';
+        } else if (headFam === 'كَان') {
+          arabicLabel = tag === 'subjx' ? 'اسم «كان»' : 'خبر «كان»';
+        } else if (headFam === 'كَاد') {
+          arabicLabel = tag === 'subjx' ? 'اسم «كاد»' : 'خبر «كاد»';
+        }
+      }
+
+      edges.push({
+        fromNode,
+        toNode,
+        tag,
+        arabicLabel,
+        englishLabel: rel.en,
+        description: rel.desc,
+      });
     }
-
-    if (!primaryAyahKey) continue;
-    const count = (ayahGraphCounts.get(primaryAyahKey) || 0) + 1;
-    ayahGraphCounts.set(primaryAyahKey, count);
-
-    const sNum = Number(primaryAyahKey.split(':')[0]);
-    store.goldSurahs.add(sNum);
-
-    if (!store.syntaxByAyah.has(primaryAyahKey)) {
-      store.syntaxByAyah.set(primaryAyahKey, []);
-      store.goldAyahCount++;
-    }
-    store.syntaxByAyah.get(primaryAyahKey)!.push({
-      graphNumber: count,
-      ayahKey: primaryAyahKey,
-      source: 'qac-gold-treebank',
-      nodes,
-      edges,
-    });
   }
+
+  return {
+    graphNumber,
+    ayahKey: primaryAyahKey,
+    source: 'qac-gold-treebank',
+    nodes,
+    edges,
+  };
 }
 
 function normalizeEqtbRelTag(rawRel: string): string {
@@ -950,8 +932,6 @@ interface EqtbRow {
   location: string;
   chapterId: number;
   verseId: number;
-  wordId: number;
-  tokId: number;
   uthmaniToken: string;
   phonetic: string;
   trans: string;
@@ -967,38 +947,384 @@ interface EqtbRow {
   headRel: string;
 }
 
-function parseEqtbCsv(rawText: string): void {
-  const lines = rawText.split(/\r?\n/);
-  if (lines.length < 2) return;
+function parseEqtbSentenceOnDemand(
+  sentenceBlock: string,
+  graphNumber: number,
+  primaryAyahKey: string,
+  morphLookupCache: Map<string, WordMorphology[]>
+): ParsedSyntaxGraph {
+  const h = store.eqtbHeaderIdx;
+  const rows: EqtbRow[] = [];
 
-  const headers = lines[0].split('\t').map((h) => h.replace(/^\uFEFF/, '').trim());
-  const idx = (name: string) => headers.indexOf(name);
+  for (const line of sentenceBlock.split('\n')) {
+    if (!line) continue;
+    const c = line.split('\t');
+    rows.push({
+      sentenceId: c[h.sentence_id],
+      tokenId: Number(c[h.token_id]),
+      location: c[h.location],
+      chapterId: Number(c[h.chapter_id]),
+      verseId: Number(c[h.verse_id]),
+      uthmaniToken: c[h.uthmani_token],
+      phonetic: c[h.phonetic],
+      trans: c[h.trans],
+      pos: c[h.pos],
+      posAr: c[h.pos_ar],
+      relLabel: c[h.rel_label],
+      relLabelAr: c[h.rel_label_ar],
+      refTokenId: c[h.ref_token_id] === '_' || c[h.ref_token_id] === '-1' ? -1 : Number(c[h.ref_token_id]),
+      isConstituent: c[h.is_constituent],
+      constituentsLoc: c[h.constituents_loc],
+      constituentLabel: c[h.constituent_label],
+      dependRel: c[h.depend_rel],
+      headRel: c[h.head_rel],
+    });
+  }
 
-  const iSid = idx('sentence_id');
-  const iTid = idx('token_id');
-  const iLoc = idx('location');
-  const iCh = idx('chapter_id');
-  const iVr = idx('verse_id');
-  const iWd = idx('word_id');
-  const iTk = idx('tok_id');
-  const iTok = idx('uthmani_token');
-  const iPhon = idx('phonetic');
-  const iTrans = idx('trans');
-  const iPos = idx('pos');
-  const iPosAr = idx('pos_ar');
-  const iRel = idx('rel_label');
-  const iRelAr = idx('rel_label_ar');
-  const iRef = idx('ref_token_id');
-  const iIsConst = idx('is_constituent');
-  const iConstLoc = idx('constituents_loc');
-  const iConstLbl = idx('constituent_label');
-  const iDepRel = idx('depend_rel');
-  const iHeadRel = idx('head_rel');
+  rows.sort((a, b) => a.tokenId - b.tokenId);
 
-  const sentences = new Map<string, EqtbRow[]>();
+  const nodes: SyntaxNode[] = [];
+  const edges: SyntaxEdge[] = [];
+  const tokenToNodeIdx = new Map<number, number>();
+  const rowToPhraseNodeIdx = new Map<number, number>();
+  const phraseSpanCache = new Map<string, number>();
 
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i];
+  const wordGroupSeen = new Set<string>();
+  const skippedDetTids: number[] = [];
+
+  const getMorphForAyah = (key: string): WordMorphology[] => {
+    let m = morphLookupCache.get(key);
+    if (!m) {
+      m = parseAyahMorphologyOnDemand(key);
+      morphLookupCache.set(key, m);
+    }
+    return m;
+  };
+
+  for (const row of rows) {
+    const cleanLoc = row.location && row.location !== '_' ? row.location.replace(/[()]/g, '') : '';
+    const isElided = !cleanLoc || row.uthmaniToken.startsWith('(');
+
+    if (!isElided && row.pos === 'DET' && (row.relLabel === 'NonRel' || row.relLabel === '_')) {
+      skippedDetTids.push(row.tokenId);
+      continue;
+    }
+
+    let canonicalArabic = row.uthmaniToken;
+    let wordNum: number | undefined;
+    let segIdx0: number | undefined;
+    let shortLoc: string | undefined;
+    let wordMorphRef: WordMorphology | undefined;
+
+    if (!isElided && cleanLoc) {
+      const parts = cleanLoc.split(':').map(Number);
+      if (parts.length === 4) {
+        const [s, a, w, seg] = parts;
+        const locAyahKey = `${s}:${a}`;
+        wordNum = w;
+        segIdx0 = seg - 1;
+        shortLoc = `${s}:${a}:${w}`;
+        wordMorphRef = getMorphForAyah(locAyahKey).find((wm) => wm.wordIndex === w);
+        const segMorph = wordMorphRef?.segments[segIdx0];
+        if (segMorph?.arabic) {
+          canonicalArabic = segMorph.arabic;
+        }
+      }
+    }
+
+    const posCode = row.pos || 'N';
+    const posMeta = POS_INFO[posCode] || { en: posCode, ar: row.posAr || posCode };
+    const nodeIdx = nodes.length;
+    tokenToNodeIdx.set(row.tokenId, nodeIdx);
+
+    while (skippedDetTids.length > 0) {
+      const detTid = skippedDetTids.shift()!;
+      tokenToNodeIdx.set(detTid, nodeIdx);
+    }
+
+    const wgKey = isElided
+      ? `elided-${row.sentenceId}-${row.tokenId}`
+      : `word-${shortLoc || row.tokenId}-${row.sentenceId}`;
+    const isFirstInWordGroup = !wordGroupSeen.has(wgKey);
+    if (isFirstInWordGroup) {
+      wordGroupSeen.add(wgKey);
+    }
+
+    const displaySegments =
+      isFirstInWordGroup && !isElided && wordMorphRef
+        ? wordMorphRef.segments.map((s) => ({
+            arabic: s.arabic,
+            pos: s.pos,
+            posArabic: s.posArabic,
+            isDet: s.pos === 'DET',
+          }))
+        : undefined;
+
+    nodes.push({
+      nodeIndex: nodeIdx,
+      nodeId: `n${nodeIdx + 1}`,
+      kind: isElided ? 'elided' : 'word',
+      location: shortLoc,
+      segmentIndex: segIdx0,
+      arabic: canonicalArabic,
+      phonetic: isFirstInWordGroup ? cleanEqtbGloss(row.phonetic) : undefined,
+      translation: isFirstInWordGroup ? cleanEqtbGloss(row.trans) : undefined,
+      pos: posCode,
+      posArabic: row.posAr && row.posAr !== '_' ? row.posAr : posMeta.ar,
+      wordGroupId: wgKey,
+      displaySegments,
+      wordStart: wordNum,
+      wordEnd: wordNum,
+    });
+  }
+
+  for (const row of rows) {
+    if (
+      (row.isConstituent === '1' || row.dependRel === '1') &&
+      row.constituentsLoc &&
+      row.constituentsLoc !== '_' &&
+      PHRASE_INFO[row.constituentLabel]
+    ) {
+      const m = row.constituentsLoc.match(/^\[(\d+)-(\d+)\]$/);
+      if (!m) continue;
+      const sNode = tokenToNodeIdx.get(Number(m[1]));
+      const eNode = tokenToNodeIdx.get(Number(m[2]));
+      if (sNode === undefined || eNode === undefined) continue;
+
+      const spanKey = `${row.constituentLabel}:${sNode}-${eNode}`;
+      let phraseIdx = phraseSpanCache.get(spanKey);
+      if (phraseIdx === undefined) {
+        phraseIdx = nodes.length;
+        phraseSpanCache.set(spanKey, phraseIdx);
+        nodes.push({
+          nodeIndex: phraseIdx,
+          nodeId: `n${phraseIdx + 1}`,
+          kind: 'phrase',
+          phraseType: row.constituentLabel,
+          phraseLabel: PHRASE_INFO[row.constituentLabel].en,
+          phraseArabic: PHRASE_INFO[row.constituentLabel].ar,
+          startNode: Math.min(sNode, eNode),
+          endNode: Math.max(sNode, eNode),
+        });
+      }
+      rowToPhraseNodeIdx.set(row.tokenId, phraseIdx);
+    }
+  }
+
+  for (const row of rows) {
+    if (
+      !row.relLabel ||
+      row.relLabel === 'NonRel' ||
+      row.relLabel === 'root' ||
+      row.relLabel === '_' ||
+      row.refTokenId < 0 ||
+      row.dependRel === '-1'
+    ) {
+      continue;
+    }
+
+    const fromNode =
+      row.dependRel === '1'
+        ? rowToPhraseNodeIdx.get(row.tokenId) ?? tokenToNodeIdx.get(row.tokenId)
+        : tokenToNodeIdx.get(row.tokenId);
+
+    const toNode =
+      row.headRel === '1'
+        ? rowToPhraseNodeIdx.get(row.refTokenId) ?? tokenToNodeIdx.get(row.refTokenId)
+        : tokenToNodeIdx.get(row.refTokenId);
+
+    if (fromNode === undefined || toNode === undefined || fromNode === toNode) continue;
+
+    const normTag = normalizeEqtbRelTag(row.relLabel);
+    const relMeta = RELATION_INFO[normTag];
+    const arabicLabel =
+      row.relLabelAr && row.relLabelAr !== '_' && row.relLabelAr !== 'ـ'
+        ? row.relLabelAr
+        : relMeta?.ar || normTag;
+
+    edges.push({
+      fromNode,
+      toNode,
+      tag: normTag,
+      arabicLabel,
+      englishLabel: relMeta?.en || row.relLabel,
+      description: relMeta?.desc || `${row.relLabel} dependency relation`,
+    });
+  }
+
+  return {
+    graphNumber,
+    ayahKey: primaryAyahKey,
+    source: 'eqtb-noorbayan',
+    nodes,
+    edges,
+  };
+}
+
+async function indexMorphologyStream(filePath: string): Promise<Array<[number, number, number]>> {
+  const rl = readline.createInterface({
+    input: fs.createReadStream(filePath, { encoding: 'utf-8' }),
+    crlfDelay: Infinity,
+  });
+
+  const tokenCoords: Array<[number, number, number]> = [];
+  let lastWordKey = '';
+
+  for await (const rawLine of rl) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) continue;
+    const t1 = line.indexOf('\t');
+    if (t1 === -1) continue;
+    const loc = line.slice(0, t1);
+    const p = loc.split(':');
+    if (p.length !== 4) continue;
+    const surah = Number(p[0]);
+    const ayah = Number(p[1]);
+    const wordIndex = Number(p[2]);
+    const ayahKey = `${surah}:${ayah}`;
+    const wordKey = `${ayahKey}:${wordIndex}`;
+
+    store.totalMorphSegments++;
+    if (wordKey !== lastWordKey) {
+      lastWordKey = wordKey;
+      store.totalMorphWords++;
+      tokenCoords.push([surah, ayah, wordIndex]);
+    }
+
+    let arr = store.rawMorphByAyah.get(ayahKey);
+    if (!arr) {
+      arr = [];
+      store.rawMorphByAyah.set(ayahKey, arr);
+    }
+    arr.push(line);
+  }
+
+  return tokenCoords;
+}
+
+async function indexIrabStream(
+  filePath: string,
+  tokenCoords: Array<[number, number, number]>
+): Promise<void> {
+  const rl = readline.createInterface({
+    input: fs.createReadStream(filePath, { encoding: 'utf-8' }),
+    crlfDelay: Infinity,
+  });
+
+  let cursor = 0;
+  for await (const line of rl) {
+    if (!line.trim()) continue;
+    const tabIdx = line.indexOf('\t');
+    if (tabIdx === -1) continue;
+    const spanCount = parseInt(line.slice(0, tabIdx), 10);
+    const irabText = line.slice(tabIdx + 1).replace(/\\n/g, '\n').trim();
+    if (isNaN(spanCount) || spanCount <= 0) continue;
+
+    const startToken = tokenCoords[cursor];
+    const endToken = tokenCoords[Math.min(cursor + spanCount - 1, tokenCoords.length - 1)];
+    if (startToken && endToken) {
+      const ayahKey = `${startToken[0]}:${startToken[1]}`;
+      let arr = store.irabByAyah.get(ayahKey);
+      if (!arr) {
+        arr = [];
+        store.irabByAyah.set(ayahKey, arr);
+      }
+      arr.push({
+        wordStart: startToken[2],
+        wordEnd:
+          endToken[0] === startToken[0] && endToken[1] === startToken[1]
+            ? endToken[2]
+            : startToken[2],
+        text: irabText,
+      });
+    }
+    cursor += spanCount;
+  }
+}
+
+async function indexSyntaxStream(filePath: string): Promise<void> {
+  const rl = readline.createInterface({
+    input: fs.createReadStream(filePath, { encoding: 'utf-8' }),
+    crlfDelay: Infinity,
+  });
+
+  let blockLines: string[] = [];
+
+  const flushBlock = () => {
+    if (blockLines.length === 0) return;
+    let primaryAyahKey = '';
+    for (const l of blockLines) {
+      const eqIdx = l.indexOf(' = word(');
+      if (eqIdx > 0) {
+        const val = l.slice(eqIdx + 8, l.length - 1).trim();
+        const parts = val.split(':');
+        if (parts.length >= 2) {
+          primaryAyahKey = `${Number(parts[0])}:${Number(parts[1])}`;
+          break;
+        }
+      }
+    }
+    if (primaryAyahKey) {
+      const sNum = Number(primaryAyahKey.split(':')[0]);
+      store.goldSurahs.add(sNum);
+      let arr = store.rawSyntaxByAyah.get(primaryAyahKey);
+      if (!arr) {
+        arr = [];
+        store.rawSyntaxByAyah.set(primaryAyahKey, arr);
+        store.goldAyahCount++;
+      }
+      arr.push(blockLines.join('\n'));
+    }
+    blockLines = [];
+  };
+
+  for await (const rawLine of rl) {
+    const trimmed = rawLine.trim();
+    if (trimmed === 'go') {
+      flushBlock();
+    } else if (trimmed.length > 0 && !trimmed.startsWith('--')) {
+      blockLines.push(trimmed);
+    }
+  }
+  flushBlock();
+}
+
+async function indexEqtbStream(csvPath: string): Promise<void> {
+  const rl = readline.createInterface({
+    input: fs.createReadStream(csvPath, { encoding: 'utf-8' }),
+    crlfDelay: Infinity,
+  });
+
+  let isHeader = true;
+  let iSid = 0;
+  let iCh = 0;
+  let iVr = 0;
+  let iLoc = 0;
+  let iHeadRel = 0;
+
+  const sentences = new Map<string, { lines: string[]; ayahKeys: Set<string> }>();
+
+  for await (const line of rl) {
+    if (isHeader) {
+      isHeader = false;
+      const headers = line.split('\t').map((h) => h.replace(/^\uFEFF/, '').trim());
+      const names = [
+        'sentence_id', 'token_id', 'location', 'chapter_id', 'verse_id',
+        'uthmani_token', 'phonetic', 'trans', 'pos', 'pos_ar',
+        'rel_label', 'rel_label_ar', 'ref_token_id', 'is_constituent',
+        'constituents_loc', 'constituent_label', 'depend_rel', 'head_rel',
+      ];
+      for (const n of names) {
+        store.eqtbHeaderIdx[n] = headers.indexOf(n);
+      }
+      iSid = store.eqtbHeaderIdx.sentence_id;
+      iCh = store.eqtbHeaderIdx.chapter_id;
+      iVr = store.eqtbHeaderIdx.verse_id;
+      iLoc = store.eqtbHeaderIdx.location;
+      iHeadRel = store.eqtbHeaderIdx.head_rel;
+      continue;
+    }
+
     if (!line) continue;
     const c = line.split('\t');
     if (c.length <= iHeadRel) continue;
@@ -1008,235 +1334,44 @@ function parseEqtbCsv(rawText: string): void {
     if (!chapterId || !verseId) continue;
 
     const ayahKey = `${chapterId}:${verseId}`;
-    // Keep QAC v2.0 Gold Treebank as authoritative for its 2,436 ayahs
-    if (store.syntaxByAyah.has(ayahKey)) continue;
+    if (store.rawSyntaxByAyah.has(ayahKey)) continue;
 
-    const sentenceId = c[iSid];
-    const row: EqtbRow = {
-      sentenceId,
-      tokenId: Number(c[iTid]),
-      location: c[iLoc],
-      chapterId,
-      verseId,
-      wordId: Number(c[iWd]),
-      tokId: Number(c[iTk]),
-      uthmaniToken: c[iTok],
-      phonetic: c[iPhon],
-      trans: c[iTrans],
-      pos: c[iPos],
-      posAr: c[iPosAr],
-      relLabel: c[iRel],
-      relLabelAr: c[iRelAr],
-      refTokenId: c[iRef] === '_' || c[iRef] === '-1' ? -1 : Number(c[iRef]),
-      isConstituent: c[iIsConst],
-      constituentsLoc: c[iConstLoc],
-      constituentLabel: c[iConstLbl],
-      dependRel: c[iDepRel],
-      headRel: c[iHeadRel],
-    };
-
-    if (!sentences.has(sentenceId)) {
-      sentences.set(sentenceId, []);
+    const sid = c[iSid];
+    let bucket = sentences.get(sid);
+    if (!bucket) {
+      bucket = { lines: [], ayahKeys: new Set() };
+      sentences.set(sid, bucket);
     }
-    sentences.get(sentenceId)!.push(row);
+    bucket.lines.push(line);
+
+    const locVal = c[iLoc];
+    if (locVal && locVal !== '_') {
+      const cleanLoc = locVal.replace(/[()]/g, '');
+      const parts = cleanLoc.split(':');
+      if (parts.length === 4) {
+        bucket.ayahKeys.add(`${Number(parts[0])}:${Number(parts[1])}`);
+      } else {
+        bucket.ayahKeys.add(ayahKey);
+      }
+    } else {
+      bucket.ayahKeys.add(ayahKey);
+    }
   }
 
-  const ayahGraphCounts = new Map<string, number>();
-
-  for (const [, rows] of sentences) {
-    rows.sort((a, b) => a.tokenId - b.tokenId);
-
-    const nodes: SyntaxNode[] = [];
-    const edges: SyntaxEdge[] = [];
-    const tokenToNodeIdx = new Map<number, number>();
-    const rowToPhraseNodeIdx = new Map<number, number>();
-    const phraseSpanCache = new Map<string, number>();
-    const ayahKeysInSentence = new Set<string>();
-
-    // Pass 1: Build word & elided token nodes in exact token_id order, folding DET into word displaySegments
-    const wordGroupSeen = new Set<string>();
-    const skippedDetTids: number[] = [];
-
-    for (let rIdx = 0; rIdx < rows.length; rIdx++) {
-      const row = rows[rIdx];
-      const cleanLoc = row.location && row.location !== '_' ? row.location.replace(/[()]/g, '') : '';
-      const isElided = !cleanLoc || row.uthmaniToken.startsWith('(');
-
-      if (!isElided && row.pos === 'DET' && (row.relLabel === 'NonRel' || row.relLabel === '_')) {
-        skippedDetTids.push(row.tokenId);
-        continue;
-      }
-
-      let canonicalArabic = row.uthmaniToken;
-      let wordNum: number | undefined;
-      let segIdx0: number | undefined;
-      let shortLoc: string | undefined;
-      let wordMorphRef: WordMorphology | undefined;
-
-      if (!isElided && cleanLoc) {
-        const parts = cleanLoc.split(':').map(Number);
-        if (parts.length === 4) {
-          const [s, a, w, seg] = parts;
-          const locAyahKey = `${s}:${a}`;
-          ayahKeysInSentence.add(locAyahKey);
-          wordNum = w;
-          segIdx0 = seg - 1;
-          shortLoc = `${s}:${a}:${w}`;
-          wordMorphRef = store.morphologyByAyah.get(locAyahKey)?.find((wm) => wm.wordIndex === w);
-          const segMorph = wordMorphRef?.segments[segIdx0];
-          if (segMorph?.arabic) {
-            canonicalArabic = segMorph.arabic;
-          }
-        }
-      } else {
-        ayahKeysInSentence.add(`${row.chapterId}:${row.verseId}`);
-      }
-
-      const posCode = row.pos || 'N';
-      const posMeta = POS_INFO[posCode] || { en: posCode, ar: row.posAr || posCode };
-      const nodeIdx = nodes.length;
-      tokenToNodeIdx.set(row.tokenId, nodeIdx);
-
-      // Map any preceding folded DET tokenIds (e.g. constituent boundary '[0-2]') to this node
-      while (skippedDetTids.length > 0) {
-        const detTid = skippedDetTids.shift()!;
-        tokenToNodeIdx.set(detTid, nodeIdx);
-      }
-
-      const wgKey = isElided
-        ? `elided-${row.sentenceId}-${row.tokenId}`
-        : `word-${shortLoc || row.tokenId}-${row.sentenceId}`;
-      const isFirstInWordGroup = !wordGroupSeen.has(wgKey);
-      if (isFirstInWordGroup) {
-        wordGroupSeen.add(wgKey);
-      }
-
-      const displaySegments =
-        isFirstInWordGroup && !isElided && wordMorphRef
-          ? wordMorphRef.segments.map((s) => ({
-              arabic: s.arabic,
-              pos: s.pos,
-              posArabic: s.posArabic,
-              isDet: s.pos === 'DET',
-            }))
-          : undefined;
-
-      nodes.push({
-        nodeIndex: nodeIdx,
-        nodeId: `n${nodeIdx + 1}`,
-        kind: isElided ? 'elided' : 'word',
-        location: shortLoc,
-        segmentIndex: segIdx0,
-        arabic: canonicalArabic,
-        phonetic: isFirstInWordGroup ? cleanEqtbGloss(row.phonetic) : undefined,
-        translation: isFirstInWordGroup ? cleanEqtbGloss(row.trans) : undefined,
-        pos: posCode,
-        posArabic: row.posAr && row.posAr !== '_' ? row.posAr : posMeta.ar,
-        wordGroupId: wgKey,
-        displaySegments,
-        wordStart: wordNum,
-        wordEnd: wordNum,
-      });
-    }
-
-    // Pass 2: Build phrase nodes (PP, VS, NS, CS, SC, S) from is_constituent / constituents_loc
-    for (const row of rows) {
-      if (
-        (row.isConstituent === '1' || row.dependRel === '1') &&
-        row.constituentsLoc &&
-        row.constituentsLoc !== '_' &&
-        PHRASE_INFO[row.constituentLabel]
-      ) {
-        const m = row.constituentsLoc.match(/^\[(\d+)-(\d+)\]$/);
-        if (!m) continue;
-        const sTid = Number(m[1]);
-        const eTid = Number(m[2]);
-        const sNode = tokenToNodeIdx.get(sTid);
-        const eNode = tokenToNodeIdx.get(eTid);
-        if (sNode === undefined || eNode === undefined) continue;
-
-        const spanKey = `${row.constituentLabel}:${sNode}-${eNode}`;
-        let phraseIdx = phraseSpanCache.get(spanKey);
-        if (phraseIdx === undefined) {
-          phraseIdx = nodes.length;
-          phraseSpanCache.set(spanKey, phraseIdx);
-          nodes.push({
-            nodeIndex: phraseIdx,
-            nodeId: `n${phraseIdx + 1}`,
-            kind: 'phrase',
-            phraseType: row.constituentLabel,
-            phraseLabel: PHRASE_INFO[row.constituentLabel].en,
-            phraseArabic: PHRASE_INFO[row.constituentLabel].ar,
-            startNode: Math.min(sNode, eNode),
-            endNode: Math.max(sNode, eNode),
-          });
-        }
-        rowToPhraseNodeIdx.set(row.tokenId, phraseIdx);
-      }
-    }
-
-    // Pass 3: Build dependency edges per nho.py (depend_rel / head_rel semantics)
-    for (const row of rows) {
-      if (
-        !row.relLabel ||
-        row.relLabel === 'NonRel' ||
-        row.relLabel === 'root' ||
-        row.relLabel === '_' ||
-        row.refTokenId < 0 ||
-        row.dependRel === '-1'
-      ) {
-        continue;
-      }
-
-      const fromNode =
-        row.dependRel === '1'
-          ? rowToPhraseNodeIdx.get(row.tokenId) ?? tokenToNodeIdx.get(row.tokenId)
-          : tokenToNodeIdx.get(row.tokenId);
-
-      const toNode =
-        row.headRel === '1'
-          ? rowToPhraseNodeIdx.get(row.refTokenId) ?? tokenToNodeIdx.get(row.refTokenId)
-          : tokenToNodeIdx.get(row.refTokenId);
-
-      if (fromNode === undefined || toNode === undefined || fromNode === toNode) continue;
-
-      const normTag = normalizeEqtbRelTag(row.relLabel);
-      const relMeta = RELATION_INFO[normTag];
-      const arabicLabel =
-        row.relLabelAr && row.relLabelAr !== '_' && row.relLabelAr !== 'ـ'
-          ? row.relLabelAr
-          : relMeta?.ar || normTag;
-
-      edges.push({
-        fromNode,
-        toNode,
-        tag: normTag,
-        arabicLabel,
-        englishLabel: relMeta?.en || row.relLabel,
-        description: relMeta?.desc || `${row.relLabel} dependency relation`,
-      });
-    }
-
-    // Register this EQTB sentence graph for every uncovered ayah present in the sentence
-    for (const ayahKey of ayahKeysInSentence) {
-      if (store.syntaxByAyah.has(ayahKey)) continue;
-      const count = (ayahGraphCounts.get(ayahKey) || 0) + 1;
-      ayahGraphCounts.set(ayahKey, count);
-
-      const sNum = Number(ayahKey.split(':')[0]);
+  for (const [, bucket] of sentences) {
+    const blockIdx = store.eqtbSentenceBlocks.length;
+    store.eqtbSentenceBlocks.push(bucket.lines.join('\n'));
+    for (const ak of bucket.ayahKeys) {
+      if (store.rawSyntaxByAyah.has(ak)) continue;
+      const sNum = Number(ak.split(':')[0]);
       store.eqtbSurahs.add(sNum);
-
-      if (!store.eqtbByAyah.has(ayahKey)) {
-        store.eqtbByAyah.set(ayahKey, []);
+      let arr = store.rawEqtbByAyah.get(ak);
+      if (!arr) {
+        arr = [];
+        store.rawEqtbByAyah.set(ak, arr);
         store.eqtbAyahCount++;
       }
-      store.eqtbByAyah.get(ayahKey)!.push({
-        graphNumber: count,
-        ayahKey,
-        source: 'eqtb-noorbayan',
-        nodes,
-        edges,
-      });
+      arr.push(blockIdx);
     }
   }
 }
@@ -1246,21 +1381,29 @@ export async function ensureQuranLinguisticsLoaded(): Promise<void> {
   if (store.loadingPromise) return store.loadingPromise;
 
   store.loadingPromise = (async () => {
-    const [morphText, syntaxText, irabText, eqtbText] = await Promise.all([
-      fetchWithCache(MORPHOLOGY_URL, 'quran-morphology.txt'),
-      fetchWithCache(SYNTAX_URL, 'syntax.txt'),
-      fetchWithCache(IRAB_URL, 'irab.tsv'),
-      fetchEqtbCsvWithCache(),
-    ]);
+    try {
+      // Process sequentially to minimize peak memory on 512MB hosts (Render free tier)
+      const morphPath = await fetchToCacheFile(MORPHOLOGY_URL, 'quran-morphology.txt');
+      let tokenCoords: Array<[number, number, number]> | null = await indexMorphologyStream(morphPath);
 
-    parseMorphologyFile(morphText);
-    parseSyntaxFile(syntaxText);
-    parseIrabFile(irabText);
-    parseEqtbCsv(eqtbText);
-    store.ready = true;
-    console.log(
-      `[QuranData] Loaded ${store.totalMorphWords} words (${store.totalMorphSegments} segments), ${store.goldAyahCount} QAC Gold ayahs + ${store.eqtbAyahCount} NoorBayan EQTB ayahs (${store.goldAyahCount + store.eqtbAyahCount}/6236 total), ${store.irabByAyah.size} irab ayahs.`
-    );
+      const irabPath = await fetchToCacheFile(IRAB_URL, 'irab.tsv');
+      await indexIrabStream(irabPath, tokenCoords);
+      tokenCoords = null; // Free transient token index immediately
+
+      const syntaxPath = await fetchToCacheFile(SYNTAX_URL, 'syntax.txt');
+      await indexSyntaxStream(syntaxPath);
+
+      const eqtbCsvPath = await ensureEqtbCsvFile();
+      await indexEqtbStream(eqtbCsvPath);
+
+      store.ready = true;
+      console.log(
+        `[QuranData] Indexed ${store.totalMorphWords} words (${store.totalMorphSegments} segments), ${store.goldAyahCount} QAC Gold + ${store.eqtbAyahCount} EQTB (${store.goldAyahCount + store.eqtbAyahCount}/6236 ayahs), ${store.irabByAyah.size} irab ayahs.`
+      );
+    } catch (err) {
+      store.loadingPromise = null;
+      throw err;
+    }
   })();
 
   return store.loadingPromise;
@@ -1269,23 +1412,54 @@ export async function ensureQuranLinguisticsLoaded(): Promise<void> {
 export async function getAyahLinguistics(surah: number, ayah: number) {
   await ensureQuranLinguisticsLoaded();
   const ayahKey = `${surah}:${ayah}`;
-  const words = store.morphologyByAyah.get(ayahKey) || [];
-  const goldGraphs = store.syntaxByAyah.get(ayahKey);
-  const eqtbGraphs = store.eqtbByAyah.get(ayahKey);
-  const hasGoldTreebank = Boolean(goldGraphs && goldGraphs.length > 0);
-  const graphs = hasGoldTreebank ? goldGraphs! : eqtbGraphs || [];
+
+  const cached = store.ayahLruCache.get(ayahKey);
+  if (cached) {
+    store.ayahLruCache.delete(ayahKey);
+    store.ayahLruCache.set(ayahKey, cached);
+    return cached;
+  }
+
+  const words = parseAyahMorphologyOnDemand(ayahKey);
+  const morphLookupCache = new Map<string, WordMorphology[]>([[ayahKey, words]]);
+
+  const goldBlocks = store.rawSyntaxByAyah.get(ayahKey);
+  const eqtbBlockIds = store.rawEqtbByAyah.get(ayahKey);
+  const hasGoldTreebank = Boolean(goldBlocks && goldBlocks.length > 0);
+
+  const graphs: ParsedSyntaxGraph[] = hasGoldTreebank
+    ? goldBlocks!.map((blk, idx) =>
+        parseSyntaxBlockOnDemand(blk, idx + 1, ayahKey, morphLookupCache)
+      )
+    : (eqtbBlockIds || []).map((blockIdx, idx) =>
+        parseEqtbSentenceOnDemand(
+          store.eqtbSentenceBlocks[blockIdx],
+          idx + 1,
+          ayahKey,
+          morphLookupCache
+        )
+      );
+
   const irab = store.irabByAyah.get(ayahKey) || [];
 
-  return {
+  const payload: CachedAyahPayload = {
     ayahKey,
     surah,
     ayah,
     hasGoldTreebank,
-    graphSource: (hasGoldTreebank ? 'qac-gold-treebank' : 'eqtb-noorbayan') as GraphDatasetSource,
+    graphSource: hasGoldTreebank ? 'qac-gold-treebank' : 'eqtb-noorbayan',
     words,
     graphs,
     irab,
   };
+
+  store.ayahLruCache.set(ayahKey, payload);
+  if (store.ayahLruCache.size > 100) {
+    const oldestKey = store.ayahLruCache.keys().next().value;
+    if (oldestKey) store.ayahLruCache.delete(oldestKey);
+  }
+
+  return payload;
 }
 
 export async function getCoverageSummary() {

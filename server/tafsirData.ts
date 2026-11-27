@@ -80,7 +80,7 @@ export async function getSadiTafsir(surah: number, ayah: number): Promise<Tafsir
   try {
     const res = await fetch(
       `https://tafsir.app/get.php?src=saadi&s=${encodeURIComponent(String(surah))}&a=${encodeURIComponent(String(ayah))}`,
-      { headers: { Accept: 'application/json' } }
+      { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(12000) }
     );
     if (res.ok) {
       const json = (await res.json()) as { ayah?: string; data?: string };
@@ -96,7 +96,8 @@ export async function getSadiTafsir(surah: number, ayah: number): Promise<Tafsir
   // 2. Verified fallback source: Quran.com v4 Tafsir #91 (Tafseer Al-Saddi)
   if (!tafsirText) {
     const qRes = await fetch(
-      `https://api.quran.com/api/v4/tafsirs/91/by_ayah/${encodeURIComponent(ayahKey)}`
+      `https://api.quran.com/api/v4/tafsirs/91/by_ayah/${encodeURIComponent(ayahKey)}`,
+      { signal: AbortSignal.timeout(12000) }
     );
     if (!qRes.ok) {
       throw new Error(`Failed to fetch Tafsir as-Sa'di for ${ayahKey}: ${qRes.status}`);
@@ -152,7 +153,7 @@ async function translateParagraphToEnglish(arText: string): Promise<string> {
   const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=ar&tl=en&dt=t&q=${encodeURIComponent(
     arText.slice(0, 1800)
   )}`;
-  const res = await fetch(url);
+  const res = await fetch(url, { signal: AbortSignal.timeout(12000) });
   if (!res.ok) throw new Error(`Translation HTTP ${res.status}`);
   const data = (await res.json()) as Array<Array<[string, string]>>;
   if (!Array.isArray(data?.[0])) throw new Error('Invalid translation response');
@@ -236,7 +237,9 @@ export async function getSadiTafsirEnglish(
     } catch {
       // Fallback to Quran.com English Tafsir (Ibn Kathir #169) if translation endpoint unreachable
       try {
-        const r2 = await fetch(`https://api.quran.com/api/v4/tafsirs/169/by_ayah/${ayahKey}`);
+        const r2 = await fetch(`https://api.quran.com/api/v4/tafsirs/169/by_ayah/${ayahKey}`, {
+          signal: AbortSignal.timeout(12000),
+        });
         if (r2.ok) {
           const d2 = (await r2.json()) as { tafsir?: { text?: string } };
           if (d2?.tafsir?.text) {
